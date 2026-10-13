@@ -1,23 +1,23 @@
 https://www.snapcalorie.com/
 
+Specifically improving the meal planner, can also integrate with UVA's dining options as additional recommendations.
+
 Solves one problem extremely well
-- Helps users find meals that support a specific fitness or health goal.
-- Eliminates the guesswork of deciding what to eat.
+- Helps users find meals that support a specific fitness or health goal by inputting natural language, useful for those with no specialized knowledge of nutrition.
 
 Know its customers or have access to them
-- Users are UVA students, faculty, and staff.
+- Customers can be fellow UVA students.
 
 Familiar or can become familiar with most of the required infrastructure
-- iPhone app built with Xcode/Swift.
+- Can be an iPhone app built with Xcode/Swift.
 - Uses existing LLM APIs and dining hall menu data.
-- No specialized hardware required.
 
 Reimagine how it can be much better
 - Users describe goals in natural language instead of being limited to selecting preset diets like vegan, keto, vegetarian.
-- Recommendations can account for fitness goals, budget, timing, and available dining options.
+- Recommendations can account for fitness goals, budget, timing, and available dining options rather than just calorie limit and manually setting nutritional goals.
 
 LLM must be essential
-- The LLM converts open-ended goals into personalized meal recommendations.
+- The LLM converts goals into personalized meal recommendations.
 - Without an LLM, the app becomes a simple filter system.
 
 No LLM-generated artifact may reach user without passing through validator
