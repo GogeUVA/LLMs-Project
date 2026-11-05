@@ -22,6 +22,12 @@ LOW_PROTEIN_MEAL = {
     "name": "Fixture Soup",
     "nutrition": {"protein_g": 12},
 }
+ALTERNATIVE_MEAL = {
+    **MEAL,
+    "id": "fixture-tofu",
+    "name": "Fixture Tofu",
+    "nutrition": {"protein_g": 35},
+}
 
 
 class RecommendationTests(unittest.TestCase):
@@ -172,3 +178,16 @@ class RecommendationTests(unittest.TestCase):
         self.assertEqual(response.json().get("reason"), "timeout")
         self.assertEqual(self.recommend.await_count, 2)
         self.assertNotIn("internal timeout", response.text)
+
+    def test_issue8_alternative_excludes_the_rejected_meal(self):
+        app.dependency_overrides[meal_requests.get_menu] = lambda: [
+            MEAL,
+            ALTERNATIVE_MEAL,
+        ]
+        self.recommend.return_value = {"meal_id": ALTERNATIVE_MEAL["id"]}
+
+        result = self.submit(excluded_meal_ids=[MEAL["id"]]).json()
+
+        self.assertEqual(result["meal"], ALTERNATIVE_MEAL)
+        supplied_ids = [item["id"] for item in self.recommend.await_args.kwargs["menu"]]
+        self.assertEqual(supplied_ids, [ALTERNATIVE_MEAL["id"]])
