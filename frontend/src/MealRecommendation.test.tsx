@@ -62,3 +62,54 @@ describe("issue #4 menu-grounded recommendation", () => {
     expect(screen.queryByText("Fixture Chicken")).not.toBeInTheDocument();
   });
 });
+
+describe("issue #12 recommendation correction", () => {
+  it("announces correction while pending and replaces progress with recovery on exhaustion", async () => {
+    let stream!: ReadableStreamDefaultController<Uint8Array>;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        stream = controller;
+      },
+    });
+    fetchRequest.mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "application/x-ndjson" }),
+      body,
+    });
+    render(<App />);
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Describe your meal" }),
+      {
+        target: { value: request },
+      },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    const encoder = new TextEncoder();
+    const sendEvent = (event: object) =>
+      stream.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+
+    sendEvent({ type: "progress" });
+    expect(await screen.findByText("Thinking…")).toBeVisible();
+    sendEvent({ type: "progress", stage: "correcting" });
+    try {
+      expect(await screen.findByText("Checking another meal…")).toBeVisible();
+      expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    } finally {
+      sendEvent({
+        type: "reply",
+        reply: {
+          status: "recommendation_failed",
+          reason: "correction_exhausted",
+        },
+      });
+      stream.close();
+      expect(
+        await screen.findByText("I couldn’t verify the suggested meals."),
+      ).toBeVisible();
+    }
+    expect(
+      screen.queryByText("Checking another meal…"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit request" })).toBeVisible();
+  });
+});

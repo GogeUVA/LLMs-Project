@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from app import meal_requests
+from app.groq_interpreter import InterpreterTimeout
 from app.main import app
 
 REQUEST = "Find a meal at Fixture Dining with at least 30 g of protein."
@@ -44,12 +45,12 @@ class RecommendationTests(unittest.TestCase):
                 app.dependency_overrides[getter] = dependency
                 self.addCleanup(app.dependency_overrides.pop, getter)
 
-    def submit(self, *, stream=False):
+    def submit(self, *, stream=False, **fields):
         headers = {"Accept": "application/x-ndjson"} if stream else {}
         with TestClient(app) as client:
             response = client.post(
                 "/api/requests/interpret",
-                json={"text": REQUEST, "recommend": True},
+                json={"text": REQUEST, "recommend": True, **fields},
                 headers=headers,
             )
         self.assertEqual(response.status_code, 200)
@@ -77,7 +78,7 @@ class RecommendationTests(unittest.TestCase):
                 self.recommend.return_value = {"meal_id": meal_id}
                 result = self.submit().json()
                 self.assertEqual(result["status"], "recommendation_failed")
-                self.assertEqual(result["reason"], "invalid_recommendation")
+                self.assertEqual(result["reason"], "correction_exhausted")
                 self.assertNotIn("meal", result)
 
     def test_issue4_malformed_model_output_is_withheld(self):
@@ -108,3 +109,66 @@ class RecommendationTests(unittest.TestCase):
         result = self.submit().json()
         self.assertEqual(result["status"], "needs_clarification")
         self.recommend.assert_not_awaited()
+
+    def test_issue12_revalidates_each_attempt_and_preserves_context(self):
+        original = "Find a high-protein lunch at Fixture Dining."
+        self.recommend.side_effect = [
+            {"meal_id": "invented-meal"},
+            {"meal_id": LOW_PROTEIN_MEAL["id"]},
+            {"meal_id": MEAL["id"]},
+        ]
+        response = self.submit(stream=True, history=[{"text": original}])
+        events = [json.loads(line) for line in response.text.splitlines()]
+        self.assertEqual(
+            [(event["type"], event.get("stage")) for event in events],
+            [
+                ("progress", None),
+                ("progress", "correcting"),
+                ("progress", "correcting"),
+                ("reply", None),
+            ],
+        )
+        self.assertEqual(events[-1]["reply"]["meal"], MEAL)
+        self.assertNotIn("invented-meal", response.text)
+        self.assertNotIn(LOW_PROTEIN_MEAL["id"], response.text)
+        self.assertEqual(self.recommend.await_count, 3)
+        initial, first, second = [
+            call.kwargs for call in self.recommend.await_args_list
+        ]
+        for correction, code in (
+            (first, "MEAL_ID_UNKNOWN"),
+            (second, "NUTRITION_TARGET_NOT_MET"),
+        ):
+            self.assertEqual(correction["original_request_text"], original)
+            for key in ("request_text", "constraints", "menu"):
+                self.assertEqual(correction[key], initial[key])
+            self.assertEqual(correction["constraints"].nutrition.min_protein_grams, 30)
+            error = correction["validation_errors"][0]
+            self.assertEqual(error["code"], code)
+            self.assertTrue(error["field"])
+            self.assertTrue(error["message"])
+
+    def test_issue12_caps_malformed_output_at_two_corrections(self):
+        self.recommend.return_value = "PRIVATE INVALID MODEL TEXT"
+        response = self.submit()
+        self.assertEqual(self.recommend.await_count, 3)
+        self.assertEqual(
+            response.json(),
+            {"status": "recommendation_failed", "reason": "correction_exhausted"},
+        )
+        for call in self.recommend.await_args_list[1:]:
+            self.assertEqual(
+                call.kwargs["validation_errors"][0]["code"], "INVALID_CANDIDATE_OUTPUT"
+            )
+            self.assertNotIn("PRIVATE INVALID MODEL TEXT", str(call.kwargs))
+        self.assertNotIn("PRIVATE INVALID MODEL TEXT", response.text)
+
+    def test_issue12_timeout_during_correction_stops_and_uses_timeout_recovery(self):
+        self.recommend.side_effect = [
+            {"meal_id": "invented-meal"},
+            InterpreterTimeout("internal timeout"),
+        ]
+        response = self.submit()
+        self.assertEqual(response.json().get("reason"), "timeout")
+        self.assertEqual(self.recommend.await_count, 2)
+        self.assertNotIn("internal timeout", response.text)
