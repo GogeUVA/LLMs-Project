@@ -44,7 +44,13 @@ class Recommendation(BaseModel):
 
 class RecommendationFailure(BaseModel):
     status: Literal["recommendation_failed"] = "recommendation_failed"
-    reason: Literal["no_match", "correction_exhausted", "model_unavailable", "timeout"]
+    reason: Literal[
+        "no_match",
+        "no_alternative",
+        "correction_exhausted",
+        "model_unavailable",
+        "timeout",
+    ]
 
 
 def load_menu() -> list[dict]:
@@ -144,17 +150,23 @@ async def recommend_meal(
     menu: list[dict],
     recommender: Recommender,
     unsupported_details: list[str],
+    excluded_meal_ids: list[str],
 ) -> AsyncIterator[Recommendation | RecommendationFailure | Literal["correcting"]]:
     # A chat clock time refers to today's service in Charlottesville.
     service_date = datetime.now(UVA_TIMEZONE).date()
-    records = {item["id"]: item for item in menu}
+    excluded = set(excluded_meal_ids)
+    records = {item["id"]: item for item in menu if item["id"] not in excluded}
     eligible = [
         item
         for item in menu
-        if evaluate_meal_constraints(item, constraints, service_date=service_date).valid
+        if item["id"] not in excluded
+        and evaluate_meal_constraints(
+            item, constraints, service_date=service_date
+        ).valid
     ]
     if not eligible:
-        yield RecommendationFailure(reason="no_match")
+        reason = "no_alternative" if excluded_meal_ids else "no_match"
+        yield RecommendationFailure(reason=reason)
         return
 
     feedback = {}

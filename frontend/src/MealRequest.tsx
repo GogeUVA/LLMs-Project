@@ -89,10 +89,12 @@ function MealSelectionAction({
   meal,
   selected,
   onSelect,
+  onAlternative,
 }: {
   meal: MenuItemRecord;
   selected: boolean;
   onSelect: (meal: MenuItemRecord) => void;
+  onAlternative?: (meal: MenuItemRecord) => void;
 }) {
   return (
     <div className="meal-selection">
@@ -104,6 +106,11 @@ function MealSelectionAction({
       >
         {selected ? "Selected" : "Select this meal"}
       </button>
+      {onAlternative && (
+        <button type="button" onClick={() => onAlternative(meal)}>
+          Try another meal
+        </button>
+      )}
       {selected && (
         <p role="status" aria-label="Meal selection">
           Selected {meal.name} for this session.
@@ -128,6 +135,8 @@ interface RecommendedMeal {
 
 const recoveryMessages = {
   no_match: "I couldn’t verify a meal that meets your requirements.",
+  no_alternative:
+    "There is no other verified meal that meets your requirements.",
   model_unavailable: "Meal suggestions are temporarily unavailable.",
   timeout: "The meal search took too long.",
   correction_exhausted: "I couldn’t verify the suggested meals.",
@@ -214,6 +223,19 @@ export default function MealRequest() {
       sessionId: selectionSessionId,
     });
     setSelectedMealId(meal.id);
+  }
+
+  function requestAlternative(turn: Turn, index: number, mealId: string) {
+    const request = JSON.parse(turn.body);
+    const excludedMealIds = Array.isArray(request.excluded_meal_ids)
+      ? request.excluded_meal_ids
+      : [];
+    const body = JSON.stringify({
+      ...request,
+      excluded_meal_ids: [...new Set([...excludedMealIds, mealId])],
+    });
+    setMessage("");
+    void send({ text: turn.text, body }, turns.slice(0, index));
   }
 
   function startNewChat() {
@@ -392,6 +414,11 @@ export default function MealRequest() {
                         meal={turn.reply.meal}
                         selected={selectedMealId === turn.reply.meal.id}
                         onSelect={selectMeal}
+                        onAlternative={
+                          index === turns.length - 1
+                            ? (meal) => requestAlternative(turn, index, meal.id)
+                            : undefined
+                        }
                       />
                     </div>
                   ) : (

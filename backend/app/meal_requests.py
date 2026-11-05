@@ -41,6 +41,9 @@ class MealRequest(BaseModel):
     text: Annotated[str, Field(max_length=2000)]
     dietary: DietaryRequirements = Field(default_factory=DietaryRequirements)
     recommend: bool = False
+    excluded_meal_ids: list[Annotated[str, Field(min_length=1, max_length=200)]] = (
+        Field(default_factory=list, max_length=20)
+    )
 
     history: list[PriorTurn] = Field(default_factory=list, max_length=20)
 
@@ -180,6 +183,7 @@ async def reply_to_request(
             menu=menu,
             recommender=recommender,
             unsupported_details=review.unsupported_details,
+            excluded_meal_ids=request.excluded_meal_ids,
         )
     ) as events:
         async for event in events:
