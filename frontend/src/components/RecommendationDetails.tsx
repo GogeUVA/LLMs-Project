@@ -78,26 +78,6 @@ function displayNumber(value: number): string {
   );
 }
 
-function formatPrice(price: MenuItemRecord["price"]): string {
-  if (
-    !price ||
-    !Number.isFinite(price.amount) ||
-    price.amount < 0 ||
-    !/^[A-Z]{3}$/.test(price.currency)
-  ) {
-    return NOT_AVAILABLE;
-  }
-
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: price.currency,
-    }).format(price.amount);
-  } catch {
-    return NOT_AVAILABLE;
-  }
-}
-
 function formatServingSize(
   servingSize: MenuItemRecord["serving_size"],
 ): string {
