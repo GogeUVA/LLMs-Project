@@ -200,3 +200,16 @@ class RecommendationTests(unittest.TestCase):
             {"status": "recommendation_failed", "reason": "no_alternative"},
         )
         self.recommend.assert_not_awaited()
+
+    def test_issue8_repeated_rejected_meal_cannot_reach_the_user(self):
+        app.dependency_overrides[meal_requests.get_menu] = lambda: [
+            MEAL,
+            ALTERNATIVE_MEAL,
+        ]
+        self.recommend.return_value = {"meal_id": MEAL["id"]}
+
+        result = self.submit(excluded_meal_ids=[MEAL["id"]]).json()
+
+        self.assertEqual(result["status"], "recommendation_failed")
+        self.assertEqual(result["reason"], "correction_exhausted")
+        self.assertNotIn("meal", result)
