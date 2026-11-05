@@ -40,8 +40,9 @@ describe("issue #4 menu-grounded recommendation", () => {
       name: "Recommendation details for Fixture Chicken",
     });
     expect(within(chat).getByText(explanation)).toBeVisible();
+    expect(within(chat).queryByText("Check Grubhub for meal exchange eligibility.")).not.toBeInTheDocument();
     expect(within(details).getByText("Fixture Dining")).toBeVisible();
-    expect(within(details).getByText("47 g")).toBeVisible();
+    expect(within(details).getAllByText("47 g")[0]).toBeVisible();
     expect(JSON.parse(fetchRequest.mock.calls[0][1].body)).toMatchObject({
       text: request,
       recommend: true,
