@@ -191,3 +191,12 @@ class RecommendationTests(unittest.TestCase):
         self.assertEqual(result["meal"], ALTERNATIVE_MEAL)
         supplied_ids = [item["id"] for item in self.recommend.await_args.kwargs["menu"]]
         self.assertEqual(supplied_ids, [ALTERNATIVE_MEAL["id"]])
+
+    def test_issue8_reports_when_no_eligible_alternative_remains(self):
+        result = self.submit(excluded_meal_ids=[MEAL["id"]]).json()
+
+        self.assertEqual(
+            result,
+            {"status": "recommendation_failed", "reason": "no_alternative"},
+        )
+        self.recommend.assert_not_awaited()
