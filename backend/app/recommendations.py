@@ -18,6 +18,7 @@ from .groq_interpreter import (
 )
 from .meal_constraints import UVA_TIMEZONE, evaluate_meal_constraints
 from .menu_evidence import load_documented_menu
+from .recommendation_validation import validate_recommendation
 
 if TYPE_CHECKING:
     from .meal_requests import Constraints
@@ -118,30 +119,21 @@ def validate_candidate(
             else Candidate.model_validate(raw)
         )
     except ValidationError:
-        return None, [
-            {
-                "code": "INVALID_CANDIDATE_OUTPUT",
-                "field": "meal_id",
-                "message": "Return a structured response containing only a valid meal_id.",
-            }
-        ]
+        candidate = None
 
-    meal = records.get(candidate.meal_id)
-    if meal is None:
-        return None, [
-            {
-                "code": "MEAL_ID_UNKNOWN",
-                "field": "meal_id",
-                "message": "Choose an existing meal_id from the supplied menu.",
-            }
-        ]
-    result = evaluate_meal_constraints(meal, constraints, service_date=service_date)
-    if result.valid:
-        return meal, []
-    return None, [
+    result = validate_recommendation(
+        candidate.model_dump() if candidate is not None else None,
+        records.values(),
+        constraints,
+        service_date=service_date,
+    )
+    errors = [
         {"code": error.code, "field": error.field, "message": error.message}
         for error in result.errors
     ]
+    if not result.valid or result.meal_id is None:
+        return None, errors
+    return records[result.meal_id], []
 
 
 async def recommend_meal(

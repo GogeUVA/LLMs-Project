@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
+from typing import TYPE_CHECKING
 
 from .dietary import DietaryError
 from .meal_constraints import ConstraintError, evaluate_meal_constraints
-from .meal_requests import Constraints
+
+if TYPE_CHECKING:
+    from .meal_requests import Constraints
 
 
 @dataclass
