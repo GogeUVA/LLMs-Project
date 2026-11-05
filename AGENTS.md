@@ -181,6 +181,7 @@ Tests must be written before production code.
 - Review the user story and acceptance criteria.
 - Identify expected behavior and relevant edge cases.
 - Write tests covering the acceptance criteria.
+- Before implementing production code, review AI-generated tests for correctness, completeness, meaningful assertions, and edge cases; refine them or add missing tests as needed.
 - Run the tests and confirm that the new tests fail for the expected reason.
 - Implement the minimum production code necessary to satisfy the tests.
 - Rerun the tests and confirm they pass.
