@@ -2,8 +2,8 @@
 
 import json
 import math
-import unittest
 from pathlib import Path
+import unittest
 
 
 DATA_PATH = Path(__file__).parents[1] / "data" / "nutrition" / "halal_shack.json"
