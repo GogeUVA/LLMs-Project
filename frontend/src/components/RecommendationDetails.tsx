@@ -229,7 +229,7 @@ export default function RecommendationDetails({
         <dl className="recommendation-details__grid">
           {NUTRIENTS.map(({ key, label, unit }) => {
             const value = formatNutritionValue(menuItem.nutrition, key, unit);
-            return value === NOT_AVAILABLE || menuItem.provenance?.[key]?.kind === "unknown" ? null : (
+            return (
               <Detail key={key} label={label} value={value} provenance={menuItem.provenance?.[key]} />
             );
           })}
@@ -238,9 +238,29 @@ export default function RecommendationDetails({
 
       <section className="recommendation-details__sources" aria-label="Nutrition sources">
         {(() => {
-          const entries = Object.values(menuItem.provenance ?? {}).filter(
-            (source): source is Extract<FieldProvenance, { kind: "documented" }> => source?.kind === "documented",
-          );
+          const fields = Object.entries(menuItem.provenance ?? {}) as [
+            DetailKey,
+            FieldProvenance | undefined,
+          ][];
+          const entries = fields
+            .filter(([key]) => {
+              if (NUTRIENTS.some((nutrient) => nutrient.key === key)) {
+                return formatNutritionValue(
+                  menuItem.nutrition,
+                  key as NutrientKey,
+                  NUTRIENTS.find((nutrient) => nutrient.key === key)!.unit,
+                ) !== NOT_AVAILABLE;
+              }
+              if (key === "serving_size") return formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE;
+              if (key === "ingredients") return formatList(menuItem.ingredients) !== NOT_AVAILABLE;
+              if (key === "allergens") return formatList(menuItem.allergens) !== NOT_AVAILABLE;
+              return false;
+            })
+            .map(([, source]) => source)
+            .filter(
+              (source): source is Extract<FieldProvenance, { kind: "documented" }> =>
+                source?.kind === "documented",
+            );
           const unique = Array.from(new Map(entries.map((source) => [
             JSON.stringify([source.source_url, source.source_name, source.source_page, source.source_updated, source.effective_date, source.collected_at]), source,
           ])).values());
