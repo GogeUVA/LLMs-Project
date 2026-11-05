@@ -155,7 +155,10 @@ function Detail({
       <dt>{label}</dt>
       <dd>
         <span>{displayedValue}</span>
-        {displayedValue !== NOT_AVAILABLE && provenance?.kind === "estimated" && <span className="recommendation-estimate"> · AI estimate</span>}
+        {displayedValue !== NOT_AVAILABLE &&
+          provenance?.kind === "estimated" && (
+            <span className="recommendation-estimate"> · AI estimate</span>
+          )}
       </dd>
     </div>
   );
@@ -193,17 +196,31 @@ export default function RecommendationDetails({
         </p>
       </header>
 
-      <dl className="recommendation-details__highlights" aria-label="Nutrition highlights">
-        {([
-          ["calories_kcal", "Calories", "kcal"],
-          ["protein_g", "Protein", "g"],
-          ["total_carbohydrate_g", "Carbs", "g"],
-        ] as const).map(([key, label, unit]) => {
+      <dl
+        className="recommendation-details__highlights"
+        aria-label="Nutrition highlights"
+      >
+        {(
+          [
+            ["calories_kcal", "Calories", "kcal"],
+            ["protein_g", "Protein", "g"],
+            ["total_carbohydrate_g", "Carbs", "g"],
+          ] as const
+        ).map(([key, label, unit]) => {
           const value = formatNutritionValue(menuItem.nutrition, key, unit);
-          return value === NOT_AVAILABLE || menuItem.provenance?.[key]?.kind === "unknown" ? null : (
+          return value === NOT_AVAILABLE ||
+            menuItem.provenance?.[key]?.kind === "unknown" ? null : (
             <div className="recommendation-details__highlight" key={key}>
               <dt>{label}</dt>
-              <dd>{value}{menuItem.provenance?.[key]?.kind === "estimated" && <span className="recommendation-estimate"> · AI estimate</span>}</dd>
+              <dd>
+                {value}
+                {menuItem.provenance?.[key]?.kind === "estimated" && (
+                  <span className="recommendation-estimate">
+                    {" "}
+                    · AI estimate
+                  </span>
+                )}
+              </dd>
             </div>
           );
         })}
@@ -211,32 +228,55 @@ export default function RecommendationDetails({
       <section aria-label="Meal details">
         <dl className="recommendation-details__facts">
           {formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE && (
-            <Detail label="Serving size" value={formatServingSize(menuItem.serving_size)} provenance={menuItem.provenance?.serving_size} />
+            <Detail
+              label="Serving size"
+              value={formatServingSize(menuItem.serving_size)}
+              provenance={menuItem.provenance?.serving_size}
+            />
           )}
           {formatList(menuItem.ingredients) !== NOT_AVAILABLE && (
-            <Detail label="Ingredients" value={formatList(menuItem.ingredients)} provenance={menuItem.provenance?.ingredients} />
+            <Detail
+              label="Ingredients"
+              value={formatList(menuItem.ingredients)}
+              provenance={menuItem.provenance?.ingredients}
+            />
           )}
           {formatList(menuItem.allergens) !== NOT_AVAILABLE && (
-            <Detail label="Allergens" value={formatList(menuItem.allergens)} provenance={menuItem.provenance?.allergens} />
+            <Detail
+              label="Allergens"
+              value={formatList(menuItem.allergens)}
+              provenance={menuItem.provenance?.allergens}
+            />
           )}
         </dl>
       </section>
 
-      <details className="recommendation-details__nutrition"
+      <details
+        className="recommendation-details__nutrition"
         aria-labelledby="recommendation-nutrition-title"
       >
-        <summary id="recommendation-nutrition-title">Full nutrition information</summary>
+        <summary id="recommendation-nutrition-title">
+          Full nutrition information
+        </summary>
         <dl className="recommendation-details__grid">
           {NUTRIENTS.map(({ key, label, unit }) => {
             const value = formatNutritionValue(menuItem.nutrition, key, unit);
             return (
-              <Detail key={key} label={label} value={value} provenance={menuItem.provenance?.[key]} />
+              <Detail
+                key={key}
+                label={label}
+                value={value}
+                provenance={menuItem.provenance?.[key]}
+              />
             );
           })}
         </dl>
       </details>
 
-      <section className="recommendation-details__sources" aria-label="Nutrition sources">
+      <section
+        className="recommendation-details__sources"
+        aria-label="Nutrition sources"
+      >
         {(() => {
           const fields = Object.entries(menuItem.provenance ?? {}) as [
             DetailKey,
@@ -245,42 +285,89 @@ export default function RecommendationDetails({
           const entries = fields
             .filter(([key]) => {
               if (NUTRIENTS.some((nutrient) => nutrient.key === key)) {
-                return formatNutritionValue(
-                  menuItem.nutrition,
-                  key as NutrientKey,
-                  NUTRIENTS.find((nutrient) => nutrient.key === key)!.unit,
-                ) !== NOT_AVAILABLE;
+                return (
+                  formatNutritionValue(
+                    menuItem.nutrition,
+                    key as NutrientKey,
+                    NUTRIENTS.find((nutrient) => nutrient.key === key)!.unit,
+                  ) !== NOT_AVAILABLE
+                );
               }
-              if (key === "serving_size") return formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE;
-              if (key === "ingredients") return formatList(menuItem.ingredients) !== NOT_AVAILABLE;
-              if (key === "allergens") return formatList(menuItem.allergens) !== NOT_AVAILABLE;
+              if (key === "serving_size")
+                return (
+                  formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE
+                );
+              if (key === "ingredients")
+                return formatList(menuItem.ingredients) !== NOT_AVAILABLE;
+              if (key === "allergens")
+                return formatList(menuItem.allergens) !== NOT_AVAILABLE;
               return false;
             })
             .map(([, source]) => source)
             .filter(
-              (source): source is Extract<FieldProvenance, { kind: "documented" }> =>
+              (
+                source,
+              ): source is Extract<FieldProvenance, { kind: "documented" }> =>
                 source?.kind === "documented",
             );
-          const unique = Array.from(new Map(entries.map((source) => [
-            JSON.stringify([source.source_url, source.source_name, source.source_page, source.source_updated, source.effective_date, source.collected_at]), source,
-          ])).values());
+          const unique = Array.from(
+            new Map(
+              entries.map((source) => [
+                JSON.stringify([
+                  source.source_url,
+                  source.source_name,
+                  source.source_page,
+                  source.source_updated,
+                  source.effective_date,
+                  source.collected_at,
+                ]),
+                source,
+              ]),
+            ).values(),
+          );
           if (!unique.length) return null;
           return (
             <>
               <h3>Sources</h3>
-              <ul>{unique.map((source, index) => {
-                const href = sourceLink(source.source_url);
-                const meta = [
-                  source.source_page == null ? null : "Page " + source.source_page,
-                  source.source_updated ? "Updated " + source.source_updated : null,
-                  source.effective_date ? "Effective " + source.effective_date : null,
-                  source.collected_at ? "Collected " + source.collected_at : null,
-                ].filter(Boolean);
-                return <li key={index}>
-                  {href ? <a href={href} target="_blank" rel="noopener noreferrer">{source.source_name || "Nutrition source"}</a> : (source.source_name || "Nutrition source")}
-                  {meta.length > 0 && <span className="recommendation-details__source-meta">{meta.join(" · ")}</span>}
-                </li>;
-              })}</ul>
+              <ul>
+                {unique.map((source, index) => {
+                  const href = sourceLink(source.source_url);
+                  const meta = [
+                    source.source_page == null
+                      ? null
+                      : "Page " + source.source_page,
+                    source.source_updated
+                      ? "Updated " + source.source_updated
+                      : null,
+                    source.effective_date
+                      ? "Effective " + source.effective_date
+                      : null,
+                    source.collected_at
+                      ? "Collected " + source.collected_at
+                      : null,
+                  ].filter(Boolean);
+                  return (
+                    <li key={index}>
+                      {href ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {source.source_name || "Nutrition source"}
+                        </a>
+                      ) : (
+                        source.source_name || "Nutrition source"
+                      )}
+                      {meta.length > 0 && (
+                        <span className="recommendation-details__source-meta">
+                          {meta.join(" · ")}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </>
           );
         })()}

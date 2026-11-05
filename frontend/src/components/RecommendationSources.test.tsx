@@ -47,7 +47,9 @@ function detail(label: string) {
   fireEvent.click(summary);
   const expanded = summary.closest("details");
   if (!expanded) throw new Error("Missing nutrition details");
-  const row = within(expanded).getByText(label, { selector: "dt" }).parentElement;
+  const row = within(expanded).getByText(label, {
+    selector: "dt",
+  }).parentElement;
   if (!row) throw new Error(`Missing detail row for ${label}`);
   return within(row);
 }
@@ -85,9 +87,13 @@ describe("issue #7 recommendation sources", () => {
 
   it("keeps source metadata with the selected meal and not the wrong nutrient", () => {
     renderBowl();
-    expect(detail("Calories").queryByText("Test nutrition chart")).not.toBeInTheDocument();
+    expect(
+      detail("Calories").queryByText("Test nutrition chart"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Other meal chart")).not.toBeInTheDocument();
     const sources = screen.getByRole("region", { name: "Nutrition sources" });
-    expect(within(sources).getAllByRole("link", { name: "Test nutrition chart" })).toHaveLength(1);
+    expect(
+      within(sources).getAllByRole("link", { name: "Test nutrition chart" }),
+    ).toHaveLength(1);
   });
 });

@@ -165,15 +165,21 @@ describe("compact source attribution", () => {
     render(
       <RecommendationDetails
         validation={{ valid: true, mealId: proteinBowl.id }}
-        menuItems={[{
-          ...proteinBowl,
-          provenance: { protein_g: source, calories_kcal: source },
-        }]}
+        menuItems={[
+          {
+            ...proteinBowl,
+            provenance: { protein_g: source, calories_kcal: source },
+          },
+        ]}
       />,
     );
     const sources = screen.getByRole("region", { name: "Nutrition sources" });
-    expect(within(sources).getAllByRole("link", { name: "Fixture nutrition chart" })).toHaveLength(1);
-    expect(within(sources).getByText("Page 2 · Updated 2026-08-09")).toBeVisible();
+    expect(
+      within(sources).getAllByRole("link", { name: "Fixture nutrition chart" }),
+    ).toHaveLength(1);
+    expect(
+      within(sources).getByText("Page 2 · Updated 2026-08-09"),
+    ).toBeVisible();
     expect(screen.getByText("Full nutrition information")).toBeVisible();
   });
 });
