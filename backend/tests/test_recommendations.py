@@ -136,7 +136,7 @@ class RecommendationTests(unittest.TestCase):
             call.kwargs for call in self.recommend.await_args_list
         ]
         for correction, code in (
-            (first, "MEAL_ID_UNKNOWN"),
+            (first, "UNKNOWN_MEAL_ID"),
             (second, "NUTRITION_TARGET_NOT_MET"),
         ):
             self.assertEqual(correction["original_request_text"], original)
@@ -158,7 +158,8 @@ class RecommendationTests(unittest.TestCase):
         )
         for call in self.recommend.await_args_list[1:]:
             self.assertEqual(
-                call.kwargs["validation_errors"][0]["code"], "INVALID_CANDIDATE_OUTPUT"
+                call.kwargs["validation_errors"][0]["code"],
+                "MALFORMED_RECOMMENDATION",
             )
             self.assertNotIn("PRIVATE INVALID MODEL TEXT", str(call.kwargs))
         self.assertNotIn("PRIVATE INVALID MODEL TEXT", response.text)
