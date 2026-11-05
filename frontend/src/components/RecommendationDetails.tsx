@@ -78,26 +78,6 @@ function displayNumber(value: number): string {
   );
 }
 
-function formatPrice(price: MenuItemRecord["price"]): string {
-  if (
-    !price ||
-    !Number.isFinite(price.amount) ||
-    price.amount < 0 ||
-    !/^[A-Z]{3}$/.test(price.currency)
-  ) {
-    return NOT_AVAILABLE;
-  }
-
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: price.currency,
-    }).format(price.amount);
-  } catch {
-    return NOT_AVAILABLE;
-  }
-}
-
 function formatServingSize(
   servingSize: MenuItemRecord["serving_size"],
 ): string {
@@ -148,33 +128,6 @@ function formatList(values: string[] | null | undefined): string {
     : NOT_AVAILABLE;
 }
 
-function hasUnknownDetails(menuItem: MenuItemRecord): boolean {
-  const hasIdentity =
-    isAvailableText(menuItem.id) && isAvailableText(menuItem.name);
-  const hasLocation = isAvailableText(menuItem.location);
-  const hasPrice = formatPrice(menuItem.price) !== NOT_AVAILABLE;
-  const hasPriceBasis = displayText(menuItem.price_basis) !== NOT_AVAILABLE;
-  const hasServingSize =
-    formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE;
-  const hasIngredients = formatList(menuItem.ingredients) !== NOT_AVAILABLE;
-  const hasAllergens = formatList(menuItem.allergens) !== NOT_AVAILABLE;
-  const hasAllNutrition = NUTRIENTS.every(
-    ({ key, unit }) =>
-      formatNutritionValue(menuItem.nutrition, key, unit) !== NOT_AVAILABLE,
-  );
-
-  return !(
-    hasPrice &&
-    hasPriceBasis &&
-    hasServingSize &&
-    hasIdentity &&
-    hasLocation &&
-    hasIngredients &&
-    hasAllergens &&
-    hasAllNutrition
-  );
-}
-
 function sourceLink(value?: string) {
   if (!value) return undefined;
   try {
@@ -185,37 +138,6 @@ function sourceLink(value?: string) {
   } catch {
     return undefined;
   }
-}
-
-function SourceLabel({ provenance }: { provenance: FieldProvenance }) {
-  if (provenance.kind === "estimated") {
-    return <span className="recommendation-source">AI estimate</span>;
-  }
-  if (provenance.kind !== "documented") return null;
-
-  const href = sourceLink(provenance.source_url);
-  const label = provenance.source_name || "Nutrition source";
-  const dates = [
-    provenance.effective_date && `Effective ${provenance.effective_date}`,
-    provenance.collected_at && `Collected ${provenance.collected_at}`,
-    provenance.source_updated && `Source updated ${provenance.source_updated}`,
-  ].filter(Boolean);
-  return (
-    <span className="recommendation-source">
-      <span>Documented</span>
-      {href ? (
-        <a href={href}>{label}</a>
-      ) : (
-        provenance.source_name && <span>{label}</span>
-      )}
-      {provenance.source_page != null && (
-        <span>Page {provenance.source_page}</span>
-      )}
-      {dates.map((date) => (
-        <span key={date}>{date}</span>
-      ))}
-    </span>
-  );
 }
 
 function Detail({
@@ -233,9 +155,10 @@ function Detail({
       <dt>{label}</dt>
       <dd>
         <span>{displayedValue}</span>
-        {displayedValue !== NOT_AVAILABLE && provenance && (
-          <SourceLabel provenance={provenance} />
-        )}
+        {displayedValue !== NOT_AVAILABLE &&
+          provenance?.kind === "estimated" && (
+            <span className="recommendation-estimate"> · AI estimate</span>
+          )}
       </dd>
     </div>
   );
@@ -273,69 +196,182 @@ export default function RecommendationDetails({
         </p>
       </header>
 
+      <dl
+        className="recommendation-details__highlights"
+        aria-label="Nutrition highlights"
+      >
+        {(
+          [
+            ["calories_kcal", "Calories", "kcal"],
+            ["protein_g", "Protein", "g"],
+            ["total_carbohydrate_g", "Carbs", "g"],
+          ] as const
+        ).map(([key, label, unit]) => {
+          const value = formatNutritionValue(menuItem.nutrition, key, unit);
+          return value === NOT_AVAILABLE ||
+            menuItem.provenance?.[key]?.kind === "unknown" ? null : (
+            <div className="recommendation-details__highlight" key={key}>
+              <dt>{label}</dt>
+              <dd>
+                {value}
+                {menuItem.provenance?.[key]?.kind === "estimated" && (
+                  <span className="recommendation-estimate">
+                    {" "}
+                    · AI estimate
+                  </span>
+                )}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
       <section aria-label="Meal details">
-        <dl className="recommendation-details__grid">
-          <Detail
-            label="Price"
-            value={formatPrice(menuItem.price)}
-            provenance={menuItem.provenance?.price}
-          />
-          <Detail
-            label="Price basis"
-            value={displayText(menuItem.price_basis)}
-            provenance={menuItem.provenance?.price_basis}
-          />
-          <Detail
-            label="Serving size"
-            value={formatServingSize(menuItem.serving_size)}
-            provenance={menuItem.provenance?.serving_size}
-          />
-          <Detail
-            label="Ingredients"
-            value={formatList(menuItem.ingredients)}
-            provenance={menuItem.provenance?.ingredients}
-          />
-          <Detail
-            label="Allergens"
-            value={formatList(menuItem.allergens)}
-            provenance={menuItem.provenance?.allergens}
-          />
+        <dl className="recommendation-details__facts">
+          {formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE && (
+            <Detail
+              label="Serving size"
+              value={formatServingSize(menuItem.serving_size)}
+              provenance={menuItem.provenance?.serving_size}
+            />
+          )}
+          {formatList(menuItem.ingredients) !== NOT_AVAILABLE && (
+            <Detail
+              label="Ingredients"
+              value={formatList(menuItem.ingredients)}
+              provenance={menuItem.provenance?.ingredients}
+            />
+          )}
+          {formatList(menuItem.allergens) !== NOT_AVAILABLE && (
+            <Detail
+              label="Allergens"
+              value={formatList(menuItem.allergens)}
+              provenance={menuItem.provenance?.allergens}
+            />
+          )}
         </dl>
       </section>
 
-      <section
+      <details
         className="recommendation-details__nutrition"
         aria-labelledby="recommendation-nutrition-title"
       >
-        <h3 id="recommendation-nutrition-title">Nutrition information</h3>
+        <summary id="recommendation-nutrition-title">
+          Full nutrition information
+        </summary>
         <dl className="recommendation-details__grid">
-          {NUTRIENTS.map(({ key, label, unit }) => (
-            <Detail
-              key={key}
-              label={label}
-              value={formatNutritionValue(menuItem.nutrition, key, unit)}
-              provenance={menuItem.provenance?.[key]}
-            />
-          ))}
+          {NUTRIENTS.map(({ key, label, unit }) => {
+            const value = formatNutritionValue(menuItem.nutrition, key, unit);
+            return (
+              <Detail
+                key={key}
+                label={label}
+                value={value}
+                provenance={menuItem.provenance?.[key]}
+              />
+            );
+          })}
         </dl>
-      </section>
+      </details>
 
-      {(hasUnknownDetails(menuItem) ||
-        Object.values(menuItem.provenance ?? {}).some(
-          (item) => item?.kind === "unknown",
-        )) && (
-        <p className="recommendation-details__unknown-note" role="note">
-          Unknown information cannot confirm that a meal meets a hard
-          constraint.
-        </p>
-      )}
-      {Object.values(menuItem.provenance ?? {}).some(
-        (item) => item?.kind === "estimated",
-      ) && (
-        <p className="recommendation-details__unknown-note" role="note">
-          Estimates cannot confirm that a meal meets a hard constraint.
-        </p>
-      )}
+      <section
+        className="recommendation-details__sources"
+        aria-label="Nutrition sources"
+      >
+        {(() => {
+          const fields = Object.entries(menuItem.provenance ?? {}) as [
+            DetailKey,
+            FieldProvenance | undefined,
+          ][];
+          const entries = fields
+            .filter(([key]) => {
+              if (NUTRIENTS.some((nutrient) => nutrient.key === key)) {
+                return (
+                  formatNutritionValue(
+                    menuItem.nutrition,
+                    key as NutrientKey,
+                    NUTRIENTS.find((nutrient) => nutrient.key === key)!.unit,
+                  ) !== NOT_AVAILABLE
+                );
+              }
+              if (key === "serving_size")
+                return (
+                  formatServingSize(menuItem.serving_size) !== NOT_AVAILABLE
+                );
+              if (key === "ingredients")
+                return formatList(menuItem.ingredients) !== NOT_AVAILABLE;
+              if (key === "allergens")
+                return formatList(menuItem.allergens) !== NOT_AVAILABLE;
+              return false;
+            })
+            .map(([, source]) => source)
+            .filter(
+              (
+                source,
+              ): source is Extract<FieldProvenance, { kind: "documented" }> =>
+                source?.kind === "documented",
+            );
+          const unique = Array.from(
+            new Map(
+              entries.map((source) => [
+                JSON.stringify([
+                  source.source_url,
+                  source.source_name,
+                  source.source_page,
+                  source.source_updated,
+                  source.effective_date,
+                  source.collected_at,
+                ]),
+                source,
+              ]),
+            ).values(),
+          );
+          if (!unique.length) return null;
+          return (
+            <>
+              <h3>Sources</h3>
+              <ul>
+                {unique.map((source, index) => {
+                  const href = sourceLink(source.source_url);
+                  const meta = [
+                    source.source_page == null
+                      ? null
+                      : "Page " + source.source_page,
+                    source.source_updated
+                      ? "Updated " + source.source_updated
+                      : null,
+                    source.effective_date
+                      ? "Effective " + source.effective_date
+                      : null,
+                    source.collected_at
+                      ? "Collected " + source.collected_at
+                      : null,
+                  ].filter(Boolean);
+                  return (
+                    <li key={index}>
+                      {href ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {source.source_name || "Nutrition source"}
+                        </a>
+                      ) : (
+                        source.source_name || "Nutrition source"
+                      )}
+                      {meta.length > 0 && (
+                        <span className="recommendation-details__source-meta">
+                          {meta.join(" · ")}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          );
+        })()}
+      </section>
     </article>
   );
 }

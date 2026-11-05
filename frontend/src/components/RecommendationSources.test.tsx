@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import RecommendationDetails, {
   type MenuItemRecord,
@@ -43,21 +43,27 @@ function renderBowl() {
 }
 
 function detail(label: string) {
-  const row = screen.getByText(label, { selector: "dt" }).parentElement;
+  const summary = screen.getByText("Full nutrition information");
+  fireEvent.click(summary);
+  const expanded = summary.closest("details");
+  if (!expanded) throw new Error("Missing nutrition details");
+  const row = within(expanded).getByText(label, {
+    selector: "dt",
+  }).parentElement;
   if (!row) throw new Error(`Missing detail row for ${label}`);
   return within(row);
 }
 
 describe("issue #7 recommendation sources", () => {
-  it("shows a documented value, its source link, and its effective date", () => {
+  it("shows a documented value with one linked source and effective date", () => {
     renderBowl();
     const protein = detail("Protein");
     expect(protein.getByText("24 g")).toBeVisible();
-    expect(protein.getByText("Documented")).toBeVisible();
+    const sources = screen.getByRole("region", { name: "Nutrition sources" });
     expect(
-      protein.getByRole("link", { name: "Test nutrition chart" }),
+      within(sources).getByRole("link", { name: "Test nutrition chart" }),
     ).toHaveAttribute("href", "https://example.com/nutrition");
-    expect(protein.getByText(/effective.*2026-09-01/i)).toBeVisible();
+    expect(within(sources).getByText("Effective 2026-09-01")).toBeVisible();
     expect(
       protein.queryByText(/independently verified/i),
     ).not.toBeInTheDocument();
@@ -67,23 +73,27 @@ describe("issue #7 recommendation sources", () => {
     renderBowl();
     const calories = detail("Calories");
     expect(calories.getByText("420 kcal")).toBeVisible();
-    expect(calories.getByText("AI estimate")).toBeVisible();
+    expect(calories.getByText(/AI estimate/)).toBeVisible();
     expect(calories.queryByText("Documented")).not.toBeInTheDocument();
   });
 
-  it("keeps missing values unavailable even when metadata is present", () => {
+  it("keeps missing values unavailable without showing unrelated source metadata", () => {
     renderBowl();
     const sodium = detail("Sodium");
     expect(sodium.getByText("Not available")).toBeVisible();
     expect(sodium.queryByText("Documented")).not.toBeInTheDocument();
-    expect(sodium.queryByText("Unrelated sodium note")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unrelated sodium note")).not.toBeInTheDocument();
   });
 
-  it("keeps source metadata with the selected meal and nutrient", () => {
+  it("keeps source metadata with the selected meal and not the wrong nutrient", () => {
     renderBowl();
     expect(
       detail("Calories").queryByText("Test nutrition chart"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Other meal chart")).not.toBeInTheDocument();
+    const sources = screen.getByRole("region", { name: "Nutrition sources" });
+    expect(
+      within(sources).getAllByRole("link", { name: "Test nutrition chart" }),
+    ).toHaveLength(1);
   });
 });
