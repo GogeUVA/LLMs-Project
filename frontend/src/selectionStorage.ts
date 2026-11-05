@@ -48,9 +48,9 @@ export function recordMealSelection(
   { now = () => new Date() }: RecordSelectionOptions = {},
 ): { record: MealSelectionRecord; created: boolean } {
   const records = loadMealSelections();
-  const previous = [...records].reverse().find(
-    ({ sessionId }) => sessionId === input.sessionId,
-  );
+  const previous = [...records]
+    .reverse()
+    .find(({ sessionId }) => sessionId === input.sessionId);
   if (previous?.mealId === input.mealId) {
     return { record: previous, created: false };
   }
@@ -61,6 +61,9 @@ export function recordMealSelection(
     outcome: previous ? "changed" : "selected",
     ...(previous ? { previousMealId: previous.mealId } : {}),
   };
-  localStorage.setItem(selectionStorageKey, JSON.stringify([...records, record]));
+  localStorage.setItem(
+    selectionStorageKey,
+    JSON.stringify([...records, record]),
+  );
   return { record, created: true };
 }

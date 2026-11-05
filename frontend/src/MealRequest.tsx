@@ -181,9 +181,9 @@ export default function MealRequest() {
   const [selectionSessionId] = useState(getOrCreateSelectionSessionId);
   const [selectedMealId, setSelectedMealId] = useState(
     () =>
-      [...loadMealSelections()].reverse().find(
-        ({ sessionId }) => sessionId === selectionSessionId,
-      )?.mealId,
+      [...loadMealSelections()]
+        .reverse()
+        .find(({ sessionId }) => sessionId === selectionSessionId)?.mealId,
   );
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
