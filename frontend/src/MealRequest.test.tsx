@@ -113,3 +113,61 @@ describe("issue #2 meal request", () => {
     expect(fetchRequest).not.toHaveBeenCalled();
   });
 });
+
+describe("issue #3 request progress", () => {
+  it("shows accessible progress, prevents duplicate requests, and clears progress on success", async () => {
+    let finishRequest!: () => void;
+    fetchRequest.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRequest = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                status: "ready",
+                original_text: "Lunch under $10",
+                constraints: { max_budget_cents: 1000 },
+                clarifications: [],
+                unsupported_details: [],
+              }),
+            });
+        }),
+    );
+    render(<App />);
+
+    enterRequest("Lunch under $10");
+
+    const progress = screen.getByText("Sending…");
+    expect(progress).toHaveAttribute("role", "status");
+    expect(progress).toBeVisible();
+    const input = screen.getByRole("textbox", { name: "Describe your meal" });
+    fireEvent.submit(input.closest("form")!);
+    expect(fetchRequest).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("hoos-eating-meal-selections")).toBeNull();
+
+    finishRequest();
+
+    expect(await screen.findByText("$10.00")).toBeVisible();
+    expect(screen.queryByText("Sending…")).not.toBeInTheDocument();
+  });
+
+  it("replaces progress with recovery when the pending request rejects", async () => {
+    let rejectRequest!: (error: Error) => void;
+    fetchRequest.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRequest = reject;
+        }),
+    );
+    render(<App />);
+    enterRequest("Lunch under $10");
+    expect(screen.getByText("Sending…")).toHaveAttribute("role", "status");
+
+    rejectRequest(new TypeError("Network unavailable"));
+
+    expect(
+      await screen.findByText("Meal suggestions are temporarily unavailable."),
+    ).toBeVisible();
+    expect(screen.queryByText("Sending…")).not.toBeInTheDocument();
+  });
+});
