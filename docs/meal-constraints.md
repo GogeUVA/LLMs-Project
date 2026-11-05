@@ -17,6 +17,7 @@ requested hard constraint the record fails or cannot verify.
   with UTC offsets, include their start, and exclude their end. Compare them as
   instants so a window can span midnight. Missing, estimated, or unusable
   windows leave availability unverified.
+  Chat passes today's Charlottesville date for same-day searches.
 - **Dietary needs** use the dietary evidence checker to reject conflicts and
   unverified hard requirements.
 - **Nutrition** applies explicit numeric targets to documented values for the

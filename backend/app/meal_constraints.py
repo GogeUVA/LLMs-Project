@@ -1,14 +1,19 @@
 """Evaluate requested hard constraints against a supplied menu record."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from .dietary import DietaryError, check_dietary
-from .meal_requests import Constraints
 from .menu_evidence import documented_numeric_value
+
+if TYPE_CHECKING:
+    from .meal_requests import Constraints
 
 UVA_TIMEZONE = ZoneInfo("America/New_York")
 

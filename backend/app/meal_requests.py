@@ -1,4 +1,4 @@
-"""Interpret meal requests without generating or validating recommendations."""
+"""Interpret meal requests and route ready requests to recommendations."""
 
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -16,6 +16,14 @@ from .groq_interpreter import (
     InvalidInterpretation,
     interpret_with_groq,
 )
+from .recommendations import (
+    Recommendation,
+    RecommendationFailure,
+    Recommender,
+    get_recommender,
+    load_menu,
+    recommend_meal,
+)
 
 router = APIRouter(prefix="/api/requests")
 Interpreter = Callable[..., Awaitable[object]]
@@ -31,6 +39,7 @@ class PriorTurn(BaseModel):
 class MealRequest(BaseModel):
     text: Annotated[str, Field(max_length=2000)]
     dietary: DietaryRequirements = Field(default_factory=DietaryRequirements)
+    recommend: bool = False
 
     history: list[PriorTurn] = Field(default_factory=list, max_length=20)
 
@@ -80,6 +89,18 @@ class ReviewedRequest(StrictModel):
     constraints: Constraints
     clarifications: list[Clarification]
     unsupported_details: list[str]
+
+
+MealReply = ReviewedRequest | Recommendation | RecommendationFailure
+
+
+def get_menu(request: MealRequest) -> list[dict] | None:
+    if not request.recommend:
+        return []
+    try:
+        return load_menu()
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
 
 
 def get_interpreter() -> Interpreter:
@@ -137,12 +158,35 @@ async def review_request(
     )
 
 
+async def reply_to_request(
+    request: MealRequest,
+    interpreter: Interpreter,
+    recommender: Recommender,
+    menu: list[dict] | None,
+) -> MealReply:
+    review = await review_request(request, interpreter)
+    if not request.recommend or review.status != "ready":
+        return review
+    if menu is None:
+        return RecommendationFailure(reason="model_unavailable")
+    return await recommend_meal(
+        request_text=request.text,
+        constraints=review.constraints,
+        menu=menu,
+        recommender=recommender,
+        unsupported_details=review.unsupported_details,
+    )
+
+
 async def stream_review(
-    request: MealRequest, interpreter: Interpreter
+    request: MealRequest,
+    interpreter: Interpreter,
+    recommender: Recommender,
+    menu: list[dict] | None,
 ) -> AsyncIterator[str]:
     yield json.dumps({"type": "progress"}) + "\n"
     try:
-        reply = await review_request(request, interpreter)
+        reply = await reply_to_request(request, interpreter, recommender, menu)
     except HTTPException as exc:
         yield json.dumps({"type": "error", "status": exc.status_code}) + "\n"
         return
@@ -152,18 +196,18 @@ async def stream_review(
     )
 
 
-@router.post(
-    "/interpret", response_model=ReviewedRequest, response_model_exclude_none=True
-)
+@router.post("/interpret", response_model=MealReply, response_model_exclude_none=True)
 async def interpret_request(
     request: MealRequest,
     http_request: Request,
     interpreter: Annotated[Interpreter, Depends(get_interpreter)],
-) -> ReviewedRequest | StreamingResponse:
+    recommender: Annotated[Recommender, Depends(get_recommender)],
+    menu: Annotated[list[dict] | None, Depends(get_menu)],
+) -> MealReply | StreamingResponse:
     if http_request.headers.get("accept") == "application/x-ndjson":
         return StreamingResponse(
-            stream_review(request, interpreter),
+            stream_review(request, interpreter, recommender, menu),
             media_type="application/x-ndjson",
             headers={"Cache-Control": "no-store"},
         )
-    return await review_request(request, interpreter)
+    return await reply_to_request(request, interpreter, recommender, menu)
