@@ -90,6 +90,11 @@ test.describe("issue #10 responsive and keyboard-accessible workflow", () => {
     await expectNoHorizontalOverflow(page);
 
     await page.keyboard.press("Shift+Tab");
+    const alternative = page.getByRole("button", { name: "Try another meal" });
+    await expect(alternative).toBeFocused();
+    await expect(alternative).toHaveCSS("outline-style", "solid");
+
+    await page.keyboard.press("Shift+Tab");
     const select = page.getByRole("button", { name: "Select Fixture Chicken" });
     await expect(select).toBeFocused();
     await expect(select).toHaveCSS("outline-style", "solid");
