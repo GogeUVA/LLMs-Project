@@ -43,7 +43,13 @@ class Recommendation(BaseModel):
 
 class RecommendationFailure(BaseModel):
     status: Literal["recommendation_failed"] = "recommendation_failed"
-    reason: Literal["no_match", "correction_exhausted", "model_unavailable", "timeout"]
+    reason: Literal[
+        "no_match",
+        "no_alternative",
+        "correction_exhausted",
+        "model_unavailable",
+        "timeout",
+    ]
 
 
 def load_menu() -> list[dict]:
@@ -166,7 +172,8 @@ async def recommend_meal(
         ).valid
     ]
     if not eligible:
-        yield RecommendationFailure(reason="no_match")
+        reason = "no_alternative" if excluded_meal_ids else "no_match"
+        yield RecommendationFailure(reason=reason)
         return
 
     feedback = {}
