@@ -27,10 +27,10 @@ class MealConstraintTests(unittest.TestCase):
             "ingredients": ["rice", "beans"],
             "allergens": [],
             "dietary": {"vegan": True},
-            "nutrition": {"protein_g": 23, "calories": 410},
+            "nutrition": {"protein_g": 23, "calories_kcal": 410},
             "provenance": {
                 field: DOCUMENTED
-                for field in ("price", "availability", "protein_g", "calories")
+                for field in ("price", "availability", "protein_g", "calories_kcal")
             },
         }
 
