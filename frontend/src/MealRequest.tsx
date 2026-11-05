@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ChatResponseError, readChatReply } from "./chatResponse";
 import { loadProfile } from "./profileStorage";
 import type { DietaryDraft } from "./DietaryFields";
+import RecommendationDetails, {
+  type MenuItemRecord,
+} from "./components/RecommendationDetails";
 
 interface Review {
   status: "ready" | "needs_clarification";
@@ -80,7 +83,14 @@ function RequestReview({ review }: { review: Review }) {
 interface Turn {
   text: string;
   body: string;
-  reply?: Review | RecommendationFailure;
+  reply?: Review | RecommendationFailure | RecommendedMeal;
+}
+
+interface RecommendedMeal {
+  status: "recommended";
+  meal: MenuItemRecord;
+  explanation: string;
+  unsupported_details?: string[];
 }
 
 const recoveryMessages = {
@@ -88,6 +98,7 @@ const recoveryMessages = {
   model_unavailable: "Meal suggestions are temporarily unavailable.",
   timeout: "The meal search took too long.",
   correction_exhausted: "I couldn’t verify the suggested meals.",
+  invalid_recommendation: "I couldn’t verify the suggested meal.",
 } as const;
 
 interface RecommendationFailure {
@@ -106,6 +117,14 @@ function isReview(reply: Turn["reply"]): reply is Review {
 }
 
 function recoveryReply(reply: Turn["reply"]): NonNullable<Turn["reply"]> {
+  if (
+    reply?.status === "recommended" &&
+    typeof reply.meal?.id === "string" &&
+    typeof reply.meal.name === "string" &&
+    typeof reply.explanation === "string"
+  ) {
+    return reply;
+  }
   if (
     isReview(reply) &&
     reply.constraints &&
@@ -133,7 +152,9 @@ export default function MealRequest() {
   const activeRequest = useRef<AbortController | null>(null);
   const description = useRef<HTMLTextAreaElement>(null);
   const latestMessage = useRef<HTMLDivElement>(null);
-  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState<
+    "sending" | "thinking" | "correcting"
+  >("sending");
 
   useEffect(() => {
     if (turns.length)
@@ -165,22 +186,33 @@ export default function MealRequest() {
       setMessage("Start a new chat to send another message.");
       return;
     }
-    const history = turns.flatMap((turn) =>
-      isReview(turn.reply)
-        ? [
-            {
-              text: turn.text,
-              questions: turn.reply.clarifications.map(
-                ({ question }) => question,
-              ),
-            },
-          ]
-        : [],
-    );
+    const history = turns.flatMap(({ text, reply }) => {
+      if (isReview(reply)) {
+        return [
+          {
+            text,
+            questions: reply.clarifications.map(({ question }) => question),
+          },
+        ];
+      }
+      if (
+        reply?.status === "recommended" ||
+        (reply?.status === "recommendation_failed" &&
+          [
+            "no_match",
+            "invalid_recommendation",
+            "correction_exhausted",
+          ].includes(reply.reason))
+      ) {
+        return [{ text, questions: [] }];
+      }
+      return [];
+    });
     const body = JSON.stringify({
       text,
       history,
       dietary: loadProfile().dietary,
+      recommend: true,
     });
     editMessage("");
     await send({ text, body }, turns);
@@ -191,7 +223,7 @@ export default function MealRequest() {
     const controller = new AbortController();
     activeRequest.current = controller;
     setPending(true);
-    setProcessing(false);
+    setProgress("sending");
     setTurns([...previousTurns, { text: turn.text, body: turn.body }]);
     try {
       const response = await fetch("/api/requests/interpret", {
@@ -203,9 +235,7 @@ export default function MealRequest() {
         },
         body: turn.body,
       });
-      const reply = await readChatReply<Turn["reply"]>(response, () =>
-        setProcessing(true),
-      );
+      const reply = await readChatReply<Turn["reply"]>(response, setProgress);
       controller.signal.throwIfAborted();
       setTurns([...previousTurns, { ...turn, reply: recoveryReply(reply) }]);
     } catch (error) {
@@ -257,7 +287,8 @@ export default function MealRequest() {
       <div className="chat-log" role="log" aria-label="Meal conversation">
         {turns.length === 0 && (
           <p className="meal-request-intro">
-            What sounds good? Add a dining spot, budget, or dietary need.
+            What sounds good? Add a dining spot, nutrition goal, or dietary
+            need.
           </p>
         )}
         {turns.map((turn, index) => (
@@ -302,6 +333,21 @@ export default function MealRequest() {
                         </div>
                       )}
                     </div>
+                  ) : turn.reply.status === "recommended" ? (
+                    <div className="meal-review">
+                      <p>{turn.reply.explanation}</p>
+                      <p>Check Grubhub for meal exchange eligibility.</p>
+                      {!!turn.reply.unsupported_details?.length && (
+                        <p>
+                          <strong>Details we can’t check yet</strong>{" "}
+                          {turn.reply.unsupported_details.join("; ")}
+                        </p>
+                      )}
+                      <RecommendationDetails
+                        validation={{ valid: true, mealId: turn.reply.meal.id }}
+                        menuItems={[turn.reply.meal]}
+                      />
+                    </div>
                   ) : (
                     <RequestReview review={turn.reply} />
                   )}
@@ -315,9 +361,15 @@ export default function MealRequest() {
             <span className="chat-avatar" aria-hidden="true">
               HE
             </span>
-            <p className="chat-pending">
+            <p className="chat-pending" role="status">
               <span className="chat-pulse" aria-hidden="true" />
-              {processing ? "Thinking…" : "Sending…"}
+              {
+                {
+                  sending: "Sending…",
+                  thinking: "Thinking…",
+                  correcting: "Checking another meal…",
+                }[progress]
+              }
             </p>
           </div>
         )}

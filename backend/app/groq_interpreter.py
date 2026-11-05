@@ -66,9 +66,6 @@ async def interpret_with_groq(
     schema: dict[str, Any],
     history: list[dict] | None = None,
 ) -> str:
-    key = os.getenv("GROQ_API_KEY")
-    if not key:
-        raise InterpreterUnavailable
     messages = [
         {"role": "system", "content": _INSTRUCTIONS},
         {
@@ -83,6 +80,15 @@ async def interpret_with_groq(
                 {"role": "assistant", "content": "\n".join(turn["questions"])}
             )
     messages.append({"role": "user", "content": text})
+    return await request_structured_groq(messages, schema, "meal_request")
+
+
+async def request_structured_groq(
+    messages: list[dict[str, str]], schema: dict[str, Any], schema_name: str
+) -> str:
+    key = os.getenv("GROQ_API_KEY")
+    if not key:
+        raise InterpreterUnavailable
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
@@ -94,7 +100,7 @@ async def interpret_with_groq(
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {
-                            "name": "meal_request",
+                            "name": schema_name,
                             "strict": True,
                             "schema": _strict_schema(schema),
                         },

@@ -22,7 +22,7 @@ npm ci
 
 Start the backend from the repository root:
 
-Set `GROQ_API_KEY` before starting the backend to enable meal request review.
+Set `GROQ_API_KEY` before starting the backend to enable meal recommendations.
 
 ```sh
 .venv/bin/python -m uvicorn app.main:app --app-dir backend --reload
@@ -36,6 +36,11 @@ npm run dev
 ```
 
 Open [localhost:5173](http://localhost:5173). API docs are at [localhost:8000/docs](http://localhost:8000/docs).
+
+Try “Find a meal at The Halal Shack with at least 30 grams of protein.” The app
+checks recommendations against the supplied menu. The current flow assumes
+students use a meal exchange. Check Grubhub for item eligibility while the
+exchange menu data is being added. See the [meal constraint policy](docs/meal-constraints.md).
 
 ## Tests
 
