@@ -5,6 +5,11 @@ import type { DietaryDraft } from "./DietaryFields";
 import RecommendationDetails, {
   type MenuItemRecord,
 } from "./components/RecommendationDetails";
+import {
+  getOrCreateSelectionSessionId,
+  loadMealSelections,
+  recordMealSelection,
+} from "./selectionStorage";
 
 interface Review {
   status: "ready" | "needs_clarification";
@@ -80,6 +85,34 @@ function RequestReview({ review }: { review: Review }) {
   );
 }
 
+function MealSelectionAction({
+  meal,
+  selected,
+  onSelect,
+}: {
+  meal: MenuItemRecord;
+  selected: boolean;
+  onSelect: (meal: MenuItemRecord) => void;
+}) {
+  return (
+    <div className="meal-selection">
+      <button
+        type="button"
+        aria-label={`Select ${meal.name}`}
+        disabled={selected}
+        onClick={() => onSelect(meal)}
+      >
+        {selected ? "Selected" : "Select this meal"}
+      </button>
+      {selected && (
+        <p role="status" aria-label="Meal selection">
+          Selected {meal.name} for this session.
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface Turn {
   text: string;
   body: string;
@@ -145,6 +178,13 @@ function recoveryReply(reply: Turn["reply"]): NonNullable<Turn["reply"]> {
 const maxRequestLength = 2000;
 
 export default function MealRequest() {
+  const [selectionSessionId] = useState(getOrCreateSelectionSessionId);
+  const [selectedMealId, setSelectedMealId] = useState(
+    () =>
+      [...loadMealSelections()].reverse().find(
+        ({ sessionId }) => sessionId === selectionSessionId,
+      )?.mealId,
+  );
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [message, setMessage] = useState("");
@@ -166,6 +206,14 @@ export default function MealRequest() {
   function editMessage(value: string) {
     setText(value);
     setMessage("");
+  }
+
+  function selectMeal(meal: MenuItemRecord) {
+    recordMealSelection({
+      mealId: meal.id,
+      sessionId: selectionSessionId,
+    });
+    setSelectedMealId(meal.id);
   }
 
   function startNewChat() {
@@ -346,6 +394,11 @@ export default function MealRequest() {
                       <RecommendationDetails
                         validation={{ valid: true, mealId: turn.reply.meal.id }}
                         menuItems={[turn.reply.meal]}
+                      />
+                      <MealSelectionAction
+                        meal={turn.reply.meal}
+                        selected={selectedMealId === turn.reply.meal.id}
+                        onSelect={selectMeal}
                       />
                     </div>
                   ) : (
