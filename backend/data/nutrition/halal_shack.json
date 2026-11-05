@@ -5,7 +5,8 @@
   "source_document": "THS_Allergen&NutritionChart_F26-S27.pdf",
   "source_updated": "2026-08-09",
   "source_page": 2,
-  "review_status": "needs_human_review",
+  "review_status": "reviewed",
+  "review_note": "Project team confirmed the nutrition records against the source chart.",
   "items": [
     {
       "id": "halal-shack-avo-chicken-bowl-24oz",

@@ -18,10 +18,11 @@ Each location has a JSON file containing a source record and its menu items.
 - Give different serving sizes or source-defined variants different IDs. Do not
   combine distinct source records or infer nutrition for an unlisted variant.
 
-`review_status` remains `needs_human_review` until a teammate compares the data
-with the linked source and records the review in the issue or pull request.
-Source URLs and update dates describe provenance; they do not guarantee current
-availability or that a restaurant has not changed its recipe.
+Set `review_status` to `needs_human_review` before verification and to `reviewed`
+after a teammate compares the records with the linked source. Record that review
+in `review_note` and in the issue or pull request. Source URLs and update dates
+describe provenance; they do not guarantee current availability or that a
+restaurant has not changed its recipe.
 
 The initial Halal Shack file contains the ten prepared Signature Menu items
 reported on page 2 of the linked nutrition chart. Build-your-own ingredients

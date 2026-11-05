@@ -26,7 +26,8 @@ class NutritionDataIssue15Tests(unittest.TestCase):
             self.dataset["source_document"], "THS_Allergen&NutritionChart_F26-S27.pdf"
         )
         self.assertEqual(self.dataset["source_updated"], "2026-08-09")
-        self.assertEqual(self.dataset["review_status"], "needs_human_review")
+        self.assertEqual(self.dataset["review_status"], "reviewed")
+        self.assertIn("confirmed", self.dataset["review_note"])
         self.assertGreaterEqual(len(self.dataset["items"]), 10)
 
     def test_issue15_each_item_has_unique_identity_serving_and_nutrition(self):
