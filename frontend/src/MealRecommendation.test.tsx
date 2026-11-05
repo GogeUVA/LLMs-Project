@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { storageKey } from "./profileStorage";
 
 const fetchRequest = vi.fn();
 const request = "Find a meal at Fixture Dining with at least 30 g of protein.";
@@ -28,13 +29,13 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-function submit(reply: object) {
+function submit(reply: object, message = request) {
   fetchRequest.mockResolvedValue({ ok: true, json: async () => reply });
   render(<App />);
   fireEvent.change(
     screen.getByRole("textbox", { name: "Describe your meal" }),
     {
-      target: { value: request },
+      target: { value: message },
     },
   );
   fireEvent.click(screen.getByRole("button", { name: "Send message" }));
@@ -171,7 +172,27 @@ describe("issue #13 validated meal selection", () => {
 
 describe("issue #8 alternative recommendation", () => {
   it("requests another meal with the same request and excludes the current meal", async () => {
-    submit({ status: "recommended", meal, explanation: "Verified match." });
+    const constrainedRequest =
+      "Find a vegan meal at Fixture Dining at 12:00 under $10 with at least 30 g protein.";
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        name: "",
+        age: "",
+        height: "",
+        weight: "",
+        dietary: {
+          allergies: [],
+          restrictions: ["vegan"],
+          preferences: [],
+          dislikes: [],
+        },
+      }),
+    );
+    submit(
+      { status: "recommended", meal, explanation: "Verified match." },
+      constrainedRequest,
+    );
     fetchRequest.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -193,6 +214,10 @@ describe("issue #8 alternative recommendation", () => {
     expect(fetchRequest).toHaveBeenCalledTimes(2);
     const initialBody = JSON.parse(fetchRequest.mock.calls[0][1].body);
     const alternativeBody = JSON.parse(fetchRequest.mock.calls[1][1].body);
+    expect(initialBody).toMatchObject({
+      text: constrainedRequest,
+      dietary: { restrictions: ["vegan"] },
+    });
     expect(alternativeBody).toMatchObject({
       ...initialBody,
       excluded_meal_ids: [meal.id],
