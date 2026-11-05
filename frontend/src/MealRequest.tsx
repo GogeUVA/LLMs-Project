@@ -135,6 +135,8 @@ interface RecommendedMeal {
 
 const recoveryMessages = {
   no_match: "I couldn’t verify a meal that meets your requirements.",
+  no_alternative:
+    "There is no other verified meal that meets your requirements.",
   model_unavailable: "Meal suggestions are temporarily unavailable.",
   timeout: "The meal search took too long.",
   correction_exhausted: "I couldn’t verify the suggested meals.",
