@@ -10,6 +10,12 @@ const meal = {
   location: "Fixture Dining",
   nutrition: { protein_g: 47 },
 };
+const alternativeMeal = {
+  ...meal,
+  id: "fixture-tofu",
+  name: "Fixture Tofu",
+  nutrition: { protein_g: 35 },
+};
 
 beforeEach(() => {
   window.history.replaceState(null, "", "#home");
@@ -160,5 +166,36 @@ describe("issue #13 validated meal selection", () => {
       screen.queryByRole("button", { name: /select fixture chicken/i }),
     ).not.toBeInTheDocument();
     expect(localStorage.getItem("hoos-eating-meal-selections")).toBeNull();
+  });
+});
+
+describe("issue #8 alternative recommendation", () => {
+  it("requests another meal with the same request and excludes the current meal", async () => {
+    submit({ status: "recommended", meal, explanation: "Verified match." });
+    fetchRequest.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: "recommended",
+        meal: alternativeMeal,
+        explanation: "Another verified match.",
+      }),
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Try another meal" }),
+    );
+
+    expect(
+      await screen.findByRole("article", {
+        name: "Recommendation details for Fixture Tofu",
+      }),
+    ).toBeVisible();
+    expect(fetchRequest).toHaveBeenCalledTimes(2);
+    const initialBody = JSON.parse(fetchRequest.mock.calls[0][1].body);
+    const alternativeBody = JSON.parse(fetchRequest.mock.calls[1][1].body);
+    expect(alternativeBody).toMatchObject({
+      ...initialBody,
+      excluded_meal_ids: [meal.id],
+    });
   });
 });
