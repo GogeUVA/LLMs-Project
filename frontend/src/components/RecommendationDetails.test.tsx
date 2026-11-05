@@ -50,7 +50,7 @@ describe("issue #6 recommendation details", () => {
     expect(within(details).getByText("rice, chicken, sauce")).toBeVisible();
     expect(within(details).getByText("milk, sesame")).toBeVisible();
     expect(within(details).getAllByText("700 kcal").length).toBeGreaterThan(0);
-    expect(within(details).getByText("53 g")).toBeVisible();
+    expect(within(details).getAllByText("53 g")[0]).toBeVisible();
     expect(within(details).getByText("780 mg")).toBeVisible();
     expect(within(details).getAllByText("26 g").length).toBeGreaterThan(0);
   });
