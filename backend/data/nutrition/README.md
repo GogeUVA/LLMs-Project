@@ -28,3 +28,8 @@ The initial Halal Shack file contains the ten prepared Signature Menu items
 reported on page 2 of the linked nutrition chart. Build-your-own ingredients
 and the protein cup's variable nutrition range are excluded from this first
 slice because they are not single prepared-item nutrition records.
+
+The menu loader attaches documented provenance to each recorded serving size
+and nutrient. It carries the source document, URL, page, and update date.
+Prices and allergens require their own evidence. Hard numeric checks should
+use `documented_numeric_value`, which excludes estimates and unknown values.

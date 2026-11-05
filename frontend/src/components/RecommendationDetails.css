@@ -99,3 +99,17 @@
     gap: 12px;
   }
 }
+
+.recommendation-source {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 0.25rem;
+  color: var(--muted, #515c71);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.recommendation-source a {
+  color: var(--navy, #232d4b);
+  text-underline-offset: 0.15em;
+}

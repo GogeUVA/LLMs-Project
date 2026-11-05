@@ -22,6 +22,26 @@ const NUTRIENTS = [
 
 type NutrientKey = (typeof NUTRIENTS)[number]["key"];
 
+type FieldProvenance =
+  | {
+      kind: "documented";
+      source_name?: string;
+      source_url?: string;
+      source_page?: number;
+      effective_date?: string;
+      collected_at?: string;
+      source_updated?: string;
+    }
+  | { kind: "estimated" | "unknown" };
+
+type DetailKey =
+  | NutrientKey
+  | "price"
+  | "price_basis"
+  | "serving_size"
+  | "ingredients"
+  | "allergens";
+
 export type MenuItemRecord = {
   id: string;
   name: string;
@@ -36,6 +56,7 @@ export type MenuItemRecord = {
   nutrition?: Partial<Record<NutrientKey, number>> | null;
   ingredients?: string[] | null;
   allergens?: string[] | null;
+  provenance?: Partial<Record<DetailKey, FieldProvenance>>;
 };
 
 type RecommendationDetailsProps = {
@@ -154,11 +175,68 @@ function hasUnknownDetails(menuItem: MenuItemRecord): boolean {
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function sourceLink(value?: string) {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function SourceLabel({ provenance }: { provenance: FieldProvenance }) {
+  if (provenance.kind === "estimated") {
+    return <span className="recommendation-source">AI estimate</span>;
+  }
+  if (provenance.kind !== "documented") return null;
+
+  const href = sourceLink(provenance.source_url);
+  const label = provenance.source_name || "Nutrition source";
+  const dates = [
+    provenance.effective_date && `Effective ${provenance.effective_date}`,
+    provenance.collected_at && `Collected ${provenance.collected_at}`,
+    provenance.source_updated && `Source updated ${provenance.source_updated}`,
+  ].filter(Boolean);
+  return (
+    <span className="recommendation-source">
+      <span>Documented</span>
+      {href ? (
+        <a href={href}>{label}</a>
+      ) : (
+        provenance.source_name && <span>{label}</span>
+      )}
+      {provenance.source_page != null && (
+        <span>Page {provenance.source_page}</span>
+      )}
+      {dates.map((date) => (
+        <span key={date}>{date}</span>
+      ))}
+    </span>
+  );
+}
+
+function Detail({
+  label,
+  value,
+  provenance,
+}: {
+  label: string;
+  value: string;
+  provenance?: FieldProvenance;
+}) {
+  const displayedValue = provenance?.kind === "unknown" ? NOT_AVAILABLE : value;
   return (
     <div className="recommendation-detail">
       <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dd>
+        <span>{displayedValue}</span>
+        {displayedValue !== NOT_AVAILABLE && provenance && (
+          <SourceLabel provenance={provenance} />
+        )}
+      </dd>
     </div>
   );
 }
@@ -197,20 +275,31 @@ export default function RecommendationDetails({
 
       <section aria-label="Meal details">
         <dl className="recommendation-details__grid">
-          <Detail label="Price" value={formatPrice(menuItem.price)} />
+          <Detail
+            label="Price"
+            value={formatPrice(menuItem.price)}
+            provenance={menuItem.provenance?.price}
+          />
           <Detail
             label="Price basis"
             value={displayText(menuItem.price_basis)}
+            provenance={menuItem.provenance?.price_basis}
           />
           <Detail
             label="Serving size"
             value={formatServingSize(menuItem.serving_size)}
+            provenance={menuItem.provenance?.serving_size}
           />
           <Detail
             label="Ingredients"
             value={formatList(menuItem.ingredients)}
+            provenance={menuItem.provenance?.ingredients}
           />
-          <Detail label="Allergens" value={formatList(menuItem.allergens)} />
+          <Detail
+            label="Allergens"
+            value={formatList(menuItem.allergens)}
+            provenance={menuItem.provenance?.allergens}
+          />
         </dl>
       </section>
 
@@ -225,15 +314,26 @@ export default function RecommendationDetails({
               key={key}
               label={label}
               value={formatNutritionValue(menuItem.nutrition, key, unit)}
+              provenance={menuItem.provenance?.[key]}
             />
           ))}
         </dl>
       </section>
 
-      {hasUnknownDetails(menuItem) && (
+      {(hasUnknownDetails(menuItem) ||
+        Object.values(menuItem.provenance ?? {}).some(
+          (item) => item?.kind === "unknown",
+        )) && (
         <p className="recommendation-details__unknown-note" role="note">
           Unknown information cannot confirm that a meal meets a hard
           constraint.
+        </p>
+      )}
+      {Object.values(menuItem.provenance ?? {}).some(
+        (item) => item?.kind === "estimated",
+      ) && (
+        <p className="recommendation-details__unknown-note" role="note">
+          Estimates cannot confirm that a meal meets a hard constraint.
         </p>
       )}
     </article>

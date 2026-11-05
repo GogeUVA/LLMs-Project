@@ -29,3 +29,22 @@ class MenuEvidenceTests(unittest.TestCase):
         for value in (True, "24", float("nan"), float("inf"), -1):
             with self.subTest(value=value):
                 self.assertIsNone(self.documented_value(value, {"kind": "documented"}))
+
+    def test_issue7_existing_dataset_preserves_document_provenance_per_field(self):
+        from pathlib import Path
+
+        from app.menu_evidence import load_documented_menu
+
+        dataset = (
+            Path(__file__).resolve().parents[1] / "data/nutrition/halal_shack.json"
+        )
+        meal = load_documented_menu(dataset)[0]
+        protein = meal["provenance"]["protein_g"]
+        self.assertEqual(protein["kind"], "documented")
+        self.assertEqual(protein["source_updated"], "2026-08-09")
+        self.assertEqual(protein["source_page"], 2)
+        self.assertNotIn("price", meal["provenance"])
+        self.assertNotIn("allergens", meal["provenance"])
+        self.assertEqual(
+            self.documented_value(meal["nutrition"]["protein_g"], protein), 23
+        )
