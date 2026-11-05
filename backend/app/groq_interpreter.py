@@ -35,6 +35,10 @@ class InterpreterUnavailable(Exception):
     """The provider is unavailable or is not configured."""
 
 
+class InterpreterTimeout(InterpreterUnavailable):
+    """The provider exceeded the transport timeout."""
+
+
 class InvalidInterpretation(Exception):
     """The provider returned an unusable response."""
 
@@ -98,6 +102,8 @@ async def interpret_with_groq(
                 },
             )
             response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise InterpreterTimeout from exc
     except httpx.HTTPError as exc:
         raise InterpreterUnavailable from exc
     try:

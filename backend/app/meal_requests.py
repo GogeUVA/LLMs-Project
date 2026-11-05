@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from .dietary import DietaryRequirements
 from .groq_interpreter import (
+    InterpreterTimeout,
     InterpreterUnavailable,
     InvalidInterpretation,
     interpret_with_groq,
@@ -102,6 +103,8 @@ async def review_request(
             if isinstance(raw, str)
             else Interpretation.model_validate(raw)
         )
+    except InterpreterTimeout:
+        raise HTTPException(504, "Meal request review timed out.") from None
     except InterpreterUnavailable:
         raise HTTPException(
             503, "Meal request review is temporarily unavailable."
@@ -140,8 +143,8 @@ async def stream_review(
     yield json.dumps({"type": "progress"}) + "\n"
     try:
         reply = await review_request(request, interpreter)
-    except HTTPException:
-        yield json.dumps({"type": "error"}) + "\n"
+    except HTTPException as exc:
+        yield json.dumps({"type": "error", "status": exc.status_code}) + "\n"
         return
     yield (
         json.dumps({"type": "reply", "reply": reply.model_dump(exclude_none=True)})

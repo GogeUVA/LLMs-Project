@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { readChatReply } from "./chatResponse";
+import { ChatResponseError, readChatReply } from "./chatResponse";
 import { loadProfile } from "./profileStorage";
 import type { DietaryDraft } from "./DietaryFields";
 
@@ -79,7 +79,48 @@ function RequestReview({ review }: { review: Review }) {
 
 interface Turn {
   text: string;
-  reply?: Review;
+  body: string;
+  reply?: Review | RecommendationFailure;
+}
+
+const recoveryMessages = {
+  no_match: "I couldn’t verify a meal that meets your requirements.",
+  model_unavailable: "Meal suggestions are temporarily unavailable.",
+  timeout: "The meal search took too long.",
+  correction_exhausted: "I couldn’t verify the suggested meals.",
+} as const;
+
+interface RecommendationFailure {
+  status: "recommendation_failed";
+  reason: keyof typeof recoveryMessages;
+}
+
+function failure(
+  reason: RecommendationFailure["reason"],
+): RecommendationFailure {
+  return { status: "recommendation_failed", reason };
+}
+
+function isReview(reply: Turn["reply"]): reply is Review {
+  return reply?.status === "ready" || reply?.status === "needs_clarification";
+}
+
+function recoveryReply(reply: Turn["reply"]): NonNullable<Turn["reply"]> {
+  if (
+    isReview(reply) &&
+    reply.constraints &&
+    Array.isArray(reply.clarifications) &&
+    Array.isArray(reply.unsupported_details)
+  ) {
+    return reply;
+  }
+  if (
+    reply?.status === "recommendation_failed" &&
+    Object.hasOwn(recoveryMessages, reply.reason)
+  ) {
+    return failure(reply.reason);
+  }
+  return failure("model_unavailable");
 }
 
 const maxRequestLength = 2000;
@@ -124,19 +165,34 @@ export default function MealRequest() {
       setMessage("Start a new chat to send another message.");
       return;
     }
-    const history = turns.map((turn) => ({
-      text: turn.text,
-      questions:
-        turn.reply?.clarifications.map(({ question }) => question) ?? [],
-    }));
+    const history = turns.flatMap((turn) =>
+      isReview(turn.reply)
+        ? [
+            {
+              text: turn.text,
+              questions: turn.reply.clarifications.map(
+                ({ question }) => question,
+              ),
+            },
+          ]
+        : [],
+    );
+    const body = JSON.stringify({
+      text,
+      history,
+      dietary: loadProfile().dietary,
+    });
+    editMessage("");
+    await send({ text, body }, turns);
+  }
 
-    const previousTurns = turns;
+  async function send(turn: Turn, previousTurns: Turn[]) {
+    if (activeRequest.current) return;
     const controller = new AbortController();
     activeRequest.current = controller;
     setPending(true);
     setProcessing(false);
-    setTurns([...previousTurns, { text }]);
-    editMessage("");
+    setTurns([...previousTurns, { text: turn.text, body: turn.body }]);
     try {
       const response = await fetch("/api/requests/interpret", {
         method: "POST",
@@ -145,20 +201,26 @@ export default function MealRequest() {
           "Content-Type": "application/json",
           Accept: "application/x-ndjson",
         },
-        body: JSON.stringify({ text, history, dietary: loadProfile().dietary }),
+        body: turn.body,
       });
-      const reply = await readChatReply<Review>(response, () =>
+      const reply = await readChatReply<Turn["reply"]>(response, () =>
         setProcessing(true),
       );
-      setTurns([...previousTurns, { text, reply }]);
-    } catch {
-      setTurns(previousTurns);
-      setText(text);
-      setMessage(
-        controller.signal.aborted
-          ? "Response stopped."
-          : "Couldn’t send your message. Try again.",
-      );
+      controller.signal.throwIfAborted();
+      setTurns([...previousTurns, { ...turn, reply: recoveryReply(reply) }]);
+    } catch (error) {
+      if (controller.signal.aborted) {
+        setTurns(turn.reply ? [...previousTurns, turn] : previousTurns);
+        if (!turn.reply) setText(turn.text);
+        setMessage("Response stopped.");
+      } else {
+        const timedOut =
+          (error instanceof ChatResponseError &&
+            [408, 504].includes(error.status)) ||
+          (error instanceof DOMException && error.name === "TimeoutError");
+        const reply = failure(timedOut ? "timeout" : "model_unavailable");
+        setTurns([...previousTurns, { ...turn, reply }]);
+      }
     } finally {
       activeRequest.current = null;
       setPending(false);
@@ -211,7 +273,38 @@ export default function MealRequest() {
                 </span>
                 <div>
                   <span className="request-announcement">Hoos Eating: </span>
-                  <RequestReview review={turn.reply} />
+                  {turn.reply.status === "recommendation_failed" ? (
+                    <div className="chat-recovery">
+                      <p>{recoveryMessages[turn.reply.reason]}</p>
+                      {index === turns.length - 1 && (
+                        <div className="chat-recovery-actions">
+                          {(turn.reply.reason === "timeout" ||
+                            turn.reply.reason === "model_unavailable") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMessage("");
+                                void send(turn, turns.slice(0, -1));
+                              }}
+                            >
+                              Retry
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              editMessage(turn.text);
+                              description.current?.focus();
+                            }}
+                          >
+                            Edit request
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <RequestReview review={turn.reply} />
+                  )}
                 </div>
               </div>
             )}

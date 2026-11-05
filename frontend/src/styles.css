@@ -311,6 +311,25 @@ button:disabled {
   padding-top: 0.15rem;
   overflow-wrap: anywhere;
 }
+.chat-recovery p {
+  margin: 0.15rem 0 0.5rem;
+}
+.chat-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.chat-recovery-actions button {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--navy);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--navy);
+}
+.chat-recovery-actions button:hover {
+  background: var(--surface);
+}
 .meal-review p {
   margin: 0 0 0.5rem;
 }
