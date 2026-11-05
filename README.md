@@ -55,6 +55,14 @@ Selection records currently remain in browser storage on that device. They are
 not synchronized to a server and are removed if the relevant browser storage is
 cleared.
 
+## Alternative recommendations
+
+A displayed recommendation includes a **Try another meal** action. The
+alternative request keeps the original request and preferences, excludes meals
+already rejected in that request, and runs the remaining candidates through the
+same constraint checks. If no eligible alternative remains, the interface says
+so without relaxing the student's constraints.
+
 ## Tests
 
 Frontend:
