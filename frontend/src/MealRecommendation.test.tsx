@@ -198,4 +198,24 @@ describe("issue #8 alternative recommendation", () => {
       excluded_meal_ids: [meal.id],
     });
   });
+
+  it("explains when no eligible alternative remains", async () => {
+    submit({ status: "recommended", meal, explanation: "Verified match." });
+    fetchRequest.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: "recommendation_failed",
+        reason: "no_alternative",
+      }),
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Try another meal" }),
+    );
+
+    expect(
+      await screen.findByText(/no other verified meal.*requirements/i),
+    ).toBeVisible();
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
 });
