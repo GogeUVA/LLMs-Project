@@ -70,6 +70,19 @@ When validation fails, return actionable validation errors to the LLM for correc
 
 Do not silently accept invalid recommendations or invent missing menu information.
 
+### Proposed Alpha Technology Stack
+
+The repository currently has no application code, framework, dependency manifest, or established test runner. Use this as the proposed direction when implementation begins, and confirm it still fits the team and deployment requirements before adding dependencies:
+
+- **Student interface:** React, TypeScript, and Vite for the student-facing meal request and recommendation flow.
+- **Application API:** Python with FastAPI. Keep request processing, LLM integration, deterministic validation, and selection tracking in separate modules.
+- **Data contracts:** Pydantic for API boundary schemas. Keep recommendation validation in deterministic application code; generated output must not bypass it.
+- **Persistence:** PostgreSQL with SQLAlchemy for meal selections and menu records if persistent storage is needed. Use clearly labeled synthetic fixtures until an authoritative campus menu dataset is available.
+- **LLM integration:** A provider-neutral adapter with structured outputs where supported. Mock model calls in automated tests and load credentials from environment configuration.
+- **Testing:** Use Python's standard-library `unittest` for dependency-free backend logic, or adopt `pytest` if the project later establishes it as the test runner. For the React interface, use Vitest and Testing Library; use Playwright for critical end-to-end workflows.
+
+These are recommendations, not installed or adopted dependencies. Do not add a framework or package until an issue requires it and the existing repository and deployment needs have been reviewed.
+
 ## 3. Repository Structure
 
 **The currently established repository structure includes:**
