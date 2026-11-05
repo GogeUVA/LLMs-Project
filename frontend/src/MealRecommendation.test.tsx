@@ -124,13 +124,21 @@ describe("issue #13 validated meal selection", () => {
     const select = await screen.findByRole("button", {
       name: "Select Fixture Chicken",
     });
+    expect(select).toHaveTextContent("Select this meal");
+    expect(
+      screen.queryByText(
+        /\b(buy|bought|purchase|purchased|order|ordered|consume|consumed)\b/i,
+      ),
+    ).not.toBeInTheDocument();
     fireEvent.click(select);
 
     expect(
       screen.getByRole("status", { name: "Meal selection" }),
     ).toHaveTextContent("Selected Fixture Chicken for this session.");
     expect(select).toBeDisabled();
-    expect(JSON.parse(localStorage.getItem("hoos-eating-meal-selections")!)).toEqual([
+    expect(
+      JSON.parse(localStorage.getItem("hoos-eating-meal-selections")!),
+    ).toEqual([
       expect.objectContaining({
         mealId: meal.id,
         sessionId: "fixture-session",
@@ -147,9 +155,7 @@ describe("issue #13 validated meal selection", () => {
       meal,
     });
 
-    expect(
-      await screen.findByText(/verify the suggested meal/i),
-    ).toBeVisible();
+    expect(await screen.findByText(/verify the suggested meal/i)).toBeVisible();
     expect(
       screen.queryByRole("button", { name: /select fixture chicken/i }),
     ).not.toBeInTheDocument();

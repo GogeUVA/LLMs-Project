@@ -15,6 +15,7 @@ export default defineConfig({
         "src/Profile.tsx",
         "src/MealRequest.tsx",
         "src/profileStorage.ts",
+        "src/selectionStorage.ts",
         "src/components/RecommendationDetails.tsx",
       ],
     },
