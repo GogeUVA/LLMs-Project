@@ -11,7 +11,7 @@ describe("Hoos Eating profile", () => {
   it("opens Profile from the home page and returns via the wordmark", async () => {
     render(<App />);
     expect(
-      screen.getByRole("heading", { name: "Hoos Eating", level: 1 }),
+      screen.getByRole("heading", { name: "Find a meal on Grounds", level: 1 }),
     ).toBeVisible();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
 
@@ -25,7 +25,10 @@ describe("Hoos Eating profile", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "Hoos Eating" }));
     expect(
-      await screen.findByRole("heading", { name: "Hoos Eating", level: 1 }),
+      await screen.findByRole("heading", {
+        name: "Find a meal on Grounds",
+        level: 1,
+      }),
     ).toBeVisible();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });

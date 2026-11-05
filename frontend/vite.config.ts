@@ -9,7 +9,13 @@ export default defineConfig({
     setupFiles: ["./src/test-setup.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/App.tsx", "src/DietaryFields.tsx", "src/Profile.tsx"],
+      include: [
+        "src/App.tsx",
+        "src/DietaryFields.tsx",
+        "src/Profile.tsx",
+        "src/MealRequest.tsx",
+        "src/profileStorage.ts",
+      ],
     },
   },
 });

@@ -22,6 +22,8 @@ npm ci
 
 Start the backend from the repository root:
 
+Set `GROQ_API_KEY` before starting the backend to enable meal request review.
+
 ```sh
 .venv/bin/python -m uvicorn app.main:app --app-dir backend --reload
 ```

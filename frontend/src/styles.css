@@ -235,61 +235,142 @@ button:disabled {
   font-size: 0.875rem;
 }
 
-.home-page .hero {
+.meal-request {
   max-width: 46rem;
-  padding-block: 2rem;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 4.25rem) 2.5rem;
 }
-.home-page .eyebrow {
-  margin: 0 0 0.75rem;
+.meal-request-intro {
   color: var(--muted);
-  font-size: 0.875rem;
+  margin: 0.65rem 0 1.5rem;
+  max-width: 38rem;
 }
-.home-page .tagline {
-  margin: 1rem 0;
-  font-size: clamp(1.25rem, 3vw, 1.65rem);
-  font-weight: 650;
-  line-height: 1.25;
+.request-form {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: clamp(0.75rem, 3vw, 1.25rem);
 }
-.home-page .intro {
-  color: var(--muted);
+.request-field-heading,
+.request-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
 }
-.home-page .workflow {
-  border-top: 1px solid var(--line);
-  padding-block: 1.5rem;
+.request-field-heading {
+  justify-content: space-between;
+  min-height: 44px;
 }
-.home-page h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-.home-page ol {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
-  gap: 1.25rem;
-  padding: 0;
-  margin: 1rem 0 0;
-  list-style: none;
-}
-.home-page li {
-  border-top: 1px solid var(--line);
-  padding-top: 0.75rem;
-}
-.home-page li > span {
-  color: var(--muted);
-  font-size: 0.75rem;
+.request-field-heading label {
   font-weight: 700;
 }
-.home-page h3 {
-  margin: 0.25rem 0;
-  font-size: 1rem;
+.example-button {
+  color: var(--navy);
+  background: transparent;
+  border-color: transparent;
+  padding-inline: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
-.home-page li p {
+.meal-request textarea {
+  display: block;
+  width: 100%;
+  min-height: 4.5rem;
+  border: 1px solid var(--control);
+  border-radius: var(--radius);
+  background: var(--white);
+  padding: 0.65rem 0.75rem;
+  margin-block: 0.25rem 1rem;
+  font: inherit;
+  color: var(--navy);
+  resize: vertical;
+}
+.meal-request textarea::placeholder {
+  color: var(--muted);
+}
+.request-submit {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: #171717;
+  font-weight: 700;
+}
+.request-submit:enabled:hover {
+  background: #f18418;
+}
+.request-message {
   margin: 0;
+  font-size: 0.875rem;
+}
+.request-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.chat-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+.chat-turn {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.chat-message {
+  justify-self: end;
+  max-width: 85%;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  background: var(--navy);
+  color: var(--white);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-pending {
   color: var(--muted);
   font-size: 0.875rem;
 }
-.home-page footer {
-  border-top: 1px solid var(--line);
-  padding-block: 1rem;
-  color: var(--muted);
-  font-size: 0.875rem;
+.request-actions {
+  justify-content: space-between;
+}
+.request-submit {
+  margin-left: auto;
+  min-width: 5rem;
+}
+.meal-review {
+  background: var(--surface);
+  border-left: 3px solid var(--orange);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+}
+.meal-review h3 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+.meal-review dl {
+  margin: 0.5rem 0 0;
+}
+.meal-review dl div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 0.5rem;
+  padding-block: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+.meal-review dt {
+  font-weight: 650;
+}
+.meal-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
