@@ -380,6 +380,12 @@ button:disabled {
   flex: none;
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
+.chat-composer-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
 .chat-composer {
   display: flex;
   align-items: end;
