@@ -1,0 +1,9 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
