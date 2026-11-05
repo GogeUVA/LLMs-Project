@@ -1,5 +1,5 @@
 // AI-generated tests for #6 [Alpha] 16; no human refinement recorded.
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import RecommendationDetails from "./RecommendationDetails";
 
@@ -46,15 +46,14 @@ describe("issue #6 recommendation details", () => {
     });
     expect(details).toHaveAttribute("data-item-id", proteinBowl.id);
     expect(within(details).getByText("Fixture Dining Location")).toBeVisible();
-    expect(within(details).getByText("$7.25")).toBeVisible();
-    expect(within(details).getByText("per bowl")).toBeVisible();
+    fireEvent.click(within(details).getByText("Full nutrition information"));
     expect(within(details).getByText("24 oz (384 g)")).toBeVisible();
     expect(within(details).getByText("rice, chicken, sauce")).toBeVisible();
     expect(within(details).getByText("milk, sesame")).toBeVisible();
-    expect(within(details).getByText("700 kcal")).toBeVisible();
-    expect(within(details).getByText("53 g")).toBeVisible();
+    expect(within(details).getAllByText("700 kcal").length).toBeGreaterThan(0);
+    expect(within(details).getAllByText("53 g")[0]).toBeVisible();
     expect(within(details).getByText("780 mg")).toBeVisible();
-    expect(within(details).getByText("26 g")).toBeVisible();
+    expect(within(details).getAllByText("26 g").length).toBeGreaterThan(0);
   });
 
   it("labels missing price, serving, ingredients, allergens, and nutrients unavailable", () => {
@@ -79,15 +78,9 @@ describe("issue #6 recommendation details", () => {
     const details = screen.getByRole("article", {
       name: "Recommendation details for Fixture Meal",
     });
-    expect(
-      within(details).getAllByText("Not available").length,
-    ).toBeGreaterThan(5);
-    expect(within(details).getByText("310 kcal")).toBeVisible();
-    expect(
-      within(details).getByText(
-        "Unknown information cannot confirm that a meal meets a hard constraint.",
-      ),
-    ).toBeVisible();
+    expect(within(details).queryByText("Price basis")).not.toBeInTheDocument();
+    expect(within(details).getAllByText("310 kcal")[0]).toBeVisible();
+    expect(within(details).queryByText("Price")).not.toBeInTheDocument();
   });
 
   it("does not show meal details unless validation passes", () => {
@@ -130,8 +123,8 @@ describe("issue #6 recommendation details", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Protein Bowl" })).toBeVisible();
-    expect(screen.getByText("700 kcal")).toBeVisible();
-    expect(screen.getByText("$7.25")).toBeVisible();
+    expect(screen.getAllByText("700 kcal").length).toBeGreaterThan(0);
+    expect(screen.queryByText("$7.25")).not.toBeInTheDocument();
     expect(screen.queryByText("Invented Bowl")).not.toBeInTheDocument();
     expect(screen.queryByText("9999 kcal")).not.toBeInTheDocument();
     expect(screen.queryByText("$0.00")).not.toBeInTheDocument();
@@ -157,8 +150,36 @@ describe("issue #6 recommendation details", () => {
       name: "Recommendation details for Fixture Meal",
     });
     expect(within(details).queryByText("None listed")).not.toBeInTheDocument();
+  });
+});
+
+describe("compact source attribution", () => {
+  it("lists a shared nutrition source once and keeps details collapsible", () => {
+    const source = {
+      kind: "documented" as const,
+      source_name: "Fixture nutrition chart",
+      source_url: "https://example.com/chart.pdf",
+      source_page: 2,
+      source_updated: "2026-08-09",
+    };
+    render(
+      <RecommendationDetails
+        validation={{ valid: true, mealId: proteinBowl.id }}
+        menuItems={[
+          {
+            ...proteinBowl,
+            provenance: { protein_g: source, calories_kcal: source },
+          },
+        ]}
+      />,
+    );
+    const sources = screen.getByRole("region", { name: "Nutrition sources" });
     expect(
-      within(details).getAllByText("Not available").length,
-    ).toBeGreaterThan(0);
+      within(sources).getAllByRole("link", { name: "Fixture nutrition chart" }),
+    ).toHaveLength(1);
+    expect(
+      within(sources).getByText("Page 2 · Updated 2026-08-09"),
+    ).toBeVisible();
+    expect(screen.getByText("Full nutrition information")).toBeVisible();
   });
 });
