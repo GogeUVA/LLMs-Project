@@ -162,11 +162,12 @@ async def recommend_meal(
 ) -> AsyncIterator[Recommendation | RecommendationFailure | Literal["correcting"]]:
     # A chat clock time refers to today's service in Charlottesville.
     service_date = datetime.now(UVA_TIMEZONE).date()
-    records = {item["id"]: item for item in menu}
+    excluded = set(excluded_meal_ids)
+    records = {item["id"]: item for item in menu if item["id"] not in excluded}
     eligible = [
         item
         for item in menu
-        if item["id"] not in excluded_meal_ids
+        if item["id"] not in excluded
         and evaluate_meal_constraints(
             item, constraints, service_date=service_date
         ).valid
