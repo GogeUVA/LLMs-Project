@@ -336,13 +336,6 @@ export default function MealRequest() {
                   ) : turn.reply.status === "recommended" ? (
                     <div className="meal-review">
                       <p>{turn.reply.explanation}</p>
-                      <p>Check Grubhub for meal exchange eligibility.</p>
-                      {!!turn.reply.unsupported_details?.length && (
-                        <p>
-                          <strong>Details we can’t check yet</strong>{" "}
-                          {turn.reply.unsupported_details.join("; ")}
-                        </p>
-                      )}
                       <RecommendationDetails
                         validation={{ valid: true, mealId: turn.reply.meal.id }}
                         menuItems={[turn.reply.meal]}
