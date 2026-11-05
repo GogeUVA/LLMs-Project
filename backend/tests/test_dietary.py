@@ -1,5 +1,3 @@
-# AI-generated tests for #1.
-
 import importlib
 import unittest
 
@@ -103,3 +101,11 @@ class DietaryTests(unittest.TestCase):
         error = next(e for e in result.errors if e.code == "ALLERGEN_CONFLICT")
         self.assertEqual(error.field, "allergens")
         self.assertIn("peanut", error.message.lower())
+
+    def test_issue1_unlisted_allergy_stays_unknown(self):
+        requirements = self.api.DietaryRequirements(allergies=["mustard"])
+        self.assertEqual(self.check(requirements=requirements).status, "unknown")
+
+    def test_issue1_plural_peanut_label_is_a_known_conflict(self):
+        result = self.check({**self.evidence, "allergens": ["Peanuts"]})
+        self.assertEqual(result.status, "conflict")
