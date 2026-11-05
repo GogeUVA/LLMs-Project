@@ -200,10 +200,10 @@ export default function RecommendationDetails({
           ["total_carbohydrate_g", "Carbs", "g"],
         ] as const).map(([key, label, unit]) => {
           const value = formatNutritionValue(menuItem.nutrition, key, unit);
-          return value === NOT_AVAILABLE ? null : (
+          return value === NOT_AVAILABLE || menuItem.provenance?.[key]?.kind === "unknown" ? null : (
             <div className="recommendation-details__highlight" key={key}>
               <dt>{label}</dt>
-              <dd>{value}</dd>
+              <dd>{value}{menuItem.provenance?.[key]?.kind === "estimated" && <span className="recommendation-estimate"> · AI estimate</span>}</dd>
             </div>
           );
         })}
@@ -229,7 +229,7 @@ export default function RecommendationDetails({
         <dl className="recommendation-details__grid">
           {NUTRIENTS.map(({ key, label, unit }) => {
             const value = formatNutritionValue(menuItem.nutrition, key, unit);
-            return value === NOT_AVAILABLE ? null : (
+            return value === NOT_AVAILABLE || menuItem.provenance?.[key]?.kind === "unknown" ? null : (
               <Detail key={key} label={label} value={value} provenance={menuItem.provenance?.[key]} />
             );
           })}
