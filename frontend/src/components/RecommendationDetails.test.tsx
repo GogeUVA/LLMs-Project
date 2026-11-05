@@ -1,5 +1,5 @@
 // AI-generated tests for #6 [Alpha] 16; no human refinement recorded.
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import RecommendationDetails from "./RecommendationDetails";
 
@@ -46,6 +46,7 @@ describe("issue #6 recommendation details", () => {
     });
     expect(details).toHaveAttribute("data-item-id", proteinBowl.id);
     expect(within(details).getByText("Fixture Dining Location")).toBeVisible();
+    fireEvent.click(within(details).getByText("Full nutrition information"));
     expect(within(details).getByText("24 oz (384 g)")).toBeVisible();
     expect(within(details).getByText("rice, chicken, sauce")).toBeVisible();
     expect(within(details).getByText("milk, sesame")).toBeVisible();
@@ -78,7 +79,7 @@ describe("issue #6 recommendation details", () => {
       name: "Recommendation details for Fixture Meal",
     });
     expect(within(details).queryByText("Price basis")).not.toBeInTheDocument();
-    expect(within(details).getByText("310 kcal")).toBeVisible();
+    expect(within(details).getAllByText("310 kcal")[0]).toBeVisible();
     expect(within(details).queryByText("Price")).not.toBeInTheDocument();
   });
 
