@@ -6,7 +6,7 @@ export class ChatResponseError extends Error {
 
 export async function readChatReply<T>(
   response: Response,
-  onProgress: () => void,
+  onProgress: (stage: "thinking" | "correcting") => void,
 ): Promise<T> {
   if (!response.ok) throw new ChatResponseError(response.status);
   if (
@@ -28,7 +28,9 @@ export async function readChatReply<T>(
       for (const line of lines) {
         if (!line.trim()) continue;
         const event = JSON.parse(line);
-        if (event.type === "progress") onProgress();
+        if (event.type === "progress") {
+          onProgress(event.stage === "correcting" ? "correcting" : "thinking");
+        }
         if (event.type === "reply" && event.reply) return event.reply as T;
         if (event.type === "error") throw new ChatResponseError(event.status);
       }

@@ -152,7 +152,9 @@ export default function MealRequest() {
   const activeRequest = useRef<AbortController | null>(null);
   const description = useRef<HTMLTextAreaElement>(null);
   const latestMessage = useRef<HTMLDivElement>(null);
-  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState<
+    "sending" | "thinking" | "correcting"
+  >("sending");
 
   useEffect(() => {
     if (turns.length)
@@ -221,7 +223,7 @@ export default function MealRequest() {
     const controller = new AbortController();
     activeRequest.current = controller;
     setPending(true);
-    setProcessing(false);
+    setProgress("sending");
     setTurns([...previousTurns, { text: turn.text, body: turn.body }]);
     try {
       const response = await fetch("/api/requests/interpret", {
@@ -233,9 +235,7 @@ export default function MealRequest() {
         },
         body: turn.body,
       });
-      const reply = await readChatReply<Turn["reply"]>(response, () =>
-        setProcessing(true),
-      );
+      const reply = await readChatReply<Turn["reply"]>(response, setProgress);
       controller.signal.throwIfAborted();
       setTurns([...previousTurns, { ...turn, reply: recoveryReply(reply) }]);
     } catch (error) {
@@ -361,9 +361,15 @@ export default function MealRequest() {
             <span className="chat-avatar" aria-hidden="true">
               HE
             </span>
-            <p className="chat-pending">
+            <p className="chat-pending" role="status">
               <span className="chat-pulse" aria-hidden="true" />
-              {processing ? "Thinking…" : "Sending…"}
+              {
+                {
+                  sending: "Sending…",
+                  thinking: "Thinking…",
+                  correcting: "Checking another meal…",
+                }[progress]
+              }
             </p>
           </div>
         )}

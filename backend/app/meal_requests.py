@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import aclosing
 from functools import partial
 from typing import Annotated, Literal
 
@@ -163,19 +164,26 @@ async def reply_to_request(
     interpreter: Interpreter,
     recommender: Recommender,
     menu: list[dict] | None,
-) -> MealReply:
+) -> AsyncIterator[MealReply | Literal["correcting"]]:
     review = await review_request(request, interpreter)
     if not request.recommend or review.status != "ready":
-        return review
+        yield review
+        return
     if menu is None:
-        return RecommendationFailure(reason="model_unavailable")
-    return await recommend_meal(
-        request_text=request.text,
-        constraints=review.constraints,
-        menu=menu,
-        recommender=recommender,
-        unsupported_details=review.unsupported_details,
-    )
+        yield RecommendationFailure(reason="model_unavailable")
+        return
+    async with aclosing(
+        recommend_meal(
+            request_text=request.text,
+            original_request_text=review.original_text,
+            constraints=review.constraints,
+            menu=menu,
+            recommender=recommender,
+            unsupported_details=review.unsupported_details,
+        )
+    ) as events:
+        async for event in events:
+            yield event
 
 
 async def stream_review(
@@ -186,14 +194,20 @@ async def stream_review(
 ) -> AsyncIterator[str]:
     yield json.dumps({"type": "progress"}) + "\n"
     try:
-        reply = await reply_to_request(request, interpreter, recommender, menu)
+        async with aclosing(
+            reply_to_request(request, interpreter, recommender, menu)
+        ) as events:
+            async for event in events:
+                if event == "correcting":
+                    payload = {"type": "progress", "stage": "correcting"}
+                else:
+                    payload = {
+                        "type": "reply",
+                        "reply": event.model_dump(exclude_none=True),
+                    }
+                yield json.dumps(payload) + "\n"
     except HTTPException as exc:
         yield json.dumps({"type": "error", "status": exc.status_code}) + "\n"
-        return
-    yield (
-        json.dumps({"type": "reply", "reply": reply.model_dump(exclude_none=True)})
-        + "\n"
-    )
 
 
 @router.post("/interpret", response_model=MealReply, response_model_exclude_none=True)
@@ -210,4 +224,10 @@ async def interpret_request(
             media_type="application/x-ndjson",
             headers={"Cache-Control": "no-store"},
         )
-    return await reply_to_request(request, interpreter, recommender, menu)
+    async with aclosing(
+        reply_to_request(request, interpreter, recommender, menu)
+    ) as events:
+        async for event in events:
+            if event != "correcting":
+                return event
+    raise HTTPException(502, "Couldn’t finish the meal request.")
