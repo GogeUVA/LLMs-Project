@@ -13,6 +13,9 @@ const meal = {
 
 beforeEach(() => {
   window.history.replaceState(null, "", "#home");
+  localStorage.clear();
+  sessionStorage.clear();
+  sessionStorage.setItem("hoos-eating-selection-session", "fixture-session");
   fetchRequest.mockReset();
   vi.stubGlobal("fetch", fetchRequest);
 });
@@ -114,5 +117,51 @@ describe("issue #12 recommendation correction", () => {
       screen.queryByText("Checking another meal…"),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit request" })).toBeVisible();
+  });
+});
+
+describe("issue #13 validated meal selection", () => {
+  it("records a displayed recommendation and confirms the in-app selection", async () => {
+    submit({ status: "recommended", meal, explanation: "Verified match." });
+
+    const select = await screen.findByRole("button", {
+      name: "Select Fixture Chicken",
+    });
+    expect(select).toHaveTextContent("Select this meal");
+    expect(
+      screen.queryByText(
+        /\b(buy|bought|purchase|purchased|order|ordered|consume|consumed)\b/i,
+      ),
+    ).not.toBeInTheDocument();
+    fireEvent.click(select);
+
+    expect(
+      screen.getByRole("status", { name: "Meal selection" }),
+    ).toHaveTextContent("Selected Fixture Chicken for this session.");
+    expect(select).toBeDisabled();
+    expect(
+      JSON.parse(localStorage.getItem("hoos-eating-meal-selections")!),
+    ).toEqual([
+      expect.objectContaining({
+        mealId: meal.id,
+        sessionId: "fixture-session",
+        selectedAt: expect.any(String),
+        outcome: "selected",
+      }),
+    ]);
+  });
+
+  it("does not offer selection for a rejected recommendation", async () => {
+    submit({
+      status: "recommendation_failed",
+      reason: "invalid_recommendation",
+      meal,
+    });
+
+    expect(await screen.findByText(/verify the suggested meal/i)).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /select fixture chicken/i }),
+    ).not.toBeInTheDocument();
+    expect(localStorage.getItem("hoos-eating-meal-selections")).toBeNull();
   });
 });

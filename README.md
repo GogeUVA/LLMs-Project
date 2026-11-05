@@ -42,6 +42,19 @@ checks recommendations against the supplied menu. The current flow assumes
 students use a meal exchange. Check Grubhub for item eligibility while the
 exchange menu data is being added. See the [meal constraint policy](docs/meal-constraints.md).
 
+## Meal selections
+
+Students can select a recommendation only after it has been displayed as a
+validated result. The Alpha interface records the meal ID, a browser-session
+identifier, the selection timestamp, and whether the choice changed within the
+same session. Repeated clicks on the same choice do not create duplicate
+records. These records describe in-app selections, not purchases or consumed
+meals.
+
+Selection records currently remain in browser storage on that device. They are
+not synchronized to a server and are removed if the relevant browser storage is
+cleared.
+
 ## Tests
 
 Frontend:
