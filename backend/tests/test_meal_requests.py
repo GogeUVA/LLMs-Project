@@ -110,3 +110,38 @@ class MealRequestTests(unittest.TestCase):
         response = self.submit("Lunch for less than $10")
         self.assertEqual(response.status_code, 502)
         self.assertNotIn("definitely free", response.text)
+
+    def test_issue2_passes_clarifying_question_and_answer_separately(self):
+        original = "Vegetarian lunch at Newcomb Hall at noon, under $10."
+        question = "Should this be vegetarian or include chicken?"
+        history = [{"text": original, "questions": [question]}]
+        self.interpret.return_value = {
+            "goal": "chicken salad",
+            "location": "Newcomb Hall",
+            "max_budget_cents": 1000,
+            "meal_time": "12:00",
+        }
+        response = self.submit(
+            "Chicken", history=history, dietary={"allergies": ["peanut"]}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["original_text"], original)
+        self.assertEqual(
+            response.json()["constraints"]["dietary"]["allergies"], ["peanut"]
+        )
+        self.assertEqual(self.interpret.await_args.args[0], "Chicken")
+        self.assertEqual(self.interpret.await_args.kwargs["history"], history)
+
+    def test_issue2_stream_announces_progress_and_delivers_structured_reply(self):
+        import json
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/requests/interpret",
+                json={"text": "Lunch under $10"},
+                headers={"Accept": "application/x-ndjson"},
+            )
+        self.assertEqual(response.headers["content-type"], "application/x-ndjson")
+        events = [json.loads(line) for line in response.text.splitlines()]
+        self.assertEqual([event["type"] for event in events], ["progress", "reply"])
+        self.assertEqual(events[-1]["reply"]["constraints"]["max_budget_cents"], 1000)

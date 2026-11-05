@@ -21,6 +21,13 @@ the goal also describes the meal. "Peanut allergy" goes in dietary.allergies;
 "prefer a vegetarian option" goes in dietary.preferences. Use empty lists
 only for categories with no stated values. Do not change saved dietary needs.
 If the request conflicts with saved hard dietary needs, ask for clarification.
+Interpret the conversation in chronological order. The latest answer to your
+clarifying question resolves that choice, even if it is only one word.
+When a student changes a request, replace the earlier conflicting request
+detail and retain the others. Example: after asking "vegetarian or chicken?"
+and receiving "chicken", use chicken and remove the earlier request-only
+vegetarian requirement. Do not ask the same question again. Saved dietary
+needs are separate and cannot be overridden by a chat message.
 A nutrition constraint requires an explicit number, unit, and direction."""
 
 
@@ -49,11 +56,29 @@ def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
 
 
 async def interpret_with_groq(
-    text: str, dietary: DietaryRequirements, *, schema: dict[str, Any]
+    text: str,
+    dietary: DietaryRequirements,
+    *,
+    schema: dict[str, Any],
+    history: list[dict] | None = None,
 ) -> str:
     key = os.getenv("GROQ_API_KEY")
     if not key:
         raise InterpreterUnavailable
+    messages = [
+        {"role": "system", "content": _INSTRUCTIONS},
+        {
+            "role": "user",
+            "content": f"Saved dietary needs: {dietary.model_dump_json()}",
+        },
+    ]
+    for turn in history or []:
+        messages.append({"role": "user", "content": turn["text"]})
+        if turn["questions"]:
+            messages.append(
+                {"role": "assistant", "content": "\n".join(turn["questions"])}
+            )
+    messages.append({"role": "user", "content": text})
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
@@ -61,13 +86,7 @@ async def interpret_with_groq(
                 headers={"Authorization": f"Bearer {key}"},
                 json={
                     "model": os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
-                    "messages": [
-                        {"role": "system", "content": _INSTRUCTIONS},
-                        {
-                            "role": "user",
-                            "content": f"Saved dietary needs: {dietary.model_dump_json()}\nMeal request: {text}",
-                        },
-                    ],
+                    "messages": messages,
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {

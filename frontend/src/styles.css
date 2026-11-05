@@ -235,74 +235,196 @@ button:disabled {
   font-size: 0.875rem;
 }
 
+.home-page main {
+  display: flex;
+  min-height: 0;
+  height: calc(100dvh - 64px);
+}
 .meal-request {
-  max-width: 46rem;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 48rem);
   margin-inline: auto;
-  padding-block: clamp(2rem, 6vw, 4.25rem) 2.5rem;
+  min-width: 0;
 }
-.meal-request-intro {
-  color: var(--muted);
-  margin: 0.65rem 0 1.5rem;
-  max-width: 38rem;
-}
-.request-form {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: clamp(0.75rem, 3vw, 1.25rem);
-}
-.request-field-heading,
-.request-actions {
+.chat-heading {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-}
-.request-field-heading {
   justify-content: space-between;
-  min-height: 44px;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+  min-height: 4rem;
+  border-bottom: 1px solid var(--line);
 }
-.request-field-heading label {
-  font-weight: 700;
+.chat-heading h1 {
+  margin: 0;
+  font-size: clamp(1.05rem, 3vw, 1.4rem);
+  letter-spacing: -0.02em;
 }
-.example-button {
-  color: var(--navy);
-  background: transparent;
-  border-color: transparent;
-  padding-inline: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 650;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+.chat-log {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem 0.25rem;
+  min-height: 0;
 }
-.meal-request textarea {
-  display: block;
-  width: 100%;
-  min-height: 4.5rem;
-  border: 1px solid var(--control);
-  border-radius: var(--radius);
-  background: var(--white);
-  padding: 0.65rem 0.75rem;
-  margin-block: 0.25rem 1rem;
-  font: inherit;
-  color: var(--navy);
-  resize: vertical;
-}
-.meal-request textarea::placeholder {
+.meal-request-intro {
+  margin: clamp(2rem, 15vh, 8rem) auto 0;
+  max-width: 25rem;
+  text-align: center;
   color: var(--muted);
 }
-.request-submit {
-  background: var(--orange);
-  border-color: var(--orange);
-  color: #171717;
-  font-weight: 700;
+.chat-turn {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.6rem;
 }
-.request-submit:enabled:hover {
-  background: #f18418;
+.chat-message {
+  justify-self: end;
+  max-width: 85%;
+  margin: 0;
+  padding: 0.65rem 0.95rem;
+  border-radius: 18px 18px 5px 18px;
+  background: #e9edf5;
+  color: var(--navy);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-reply {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+.chat-avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+.meal-review {
+  padding-top: 0.15rem;
+  overflow-wrap: anywhere;
+}
+.meal-review p {
+  margin: 0 0 0.5rem;
+}
+.meal-review dl {
+  margin: 0.5rem 0 0.75rem;
+}
+.meal-review dl div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  padding-block: 0.2rem;
+}
+.meal-review dt {
+  font-weight: 650;
+}
+.meal-review dd {
+  margin: 0;
+}
+.chat-pending {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.chat-pulse {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--orange);
+  animation: chat-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes chat-pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-pulse {
+    animation: none;
+  }
+}
+.request-form {
+  flex: none;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+.chat-composer {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+  border: 1px solid var(--control);
+  border-radius: 1.5rem;
+  padding: 0.5rem;
+  background: var(--white);
+}
+.chat-composer:focus-within {
+  border-color: var(--navy);
+}
+.chat-composer textarea {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  color: var(--navy);
+  resize: none;
+}
+.chat-composer textarea:focus-visible {
+  outline: none;
+}
+.chat-composer:has(textarea:focus-visible) {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.chat-composer textarea::placeholder {
+  color: var(--muted);
+}
+.chat-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+}
+.chat-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.chat-reset {
+  color: var(--navy);
+  background: var(--surface);
+}
+.chat-send {
+  background: var(--orange);
+  color: #171717;
+}
+.chat-send:disabled {
+  background: var(--surface);
+  color: var(--muted);
 }
 .request-message {
-  margin: 0;
+  margin: 0 0 0.5rem;
   font-size: 0.875rem;
+}
+.request-message:empty {
+  margin: 0;
 }
 .request-announcement {
   position: absolute;
@@ -312,65 +434,4 @@ button:disabled {
   margin: -1px;
   overflow: hidden;
   clip-path: inset(50%);
-}
-.chat-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-}
-.chat-turn {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-.chat-message {
-  justify-self: end;
-  max-width: 85%;
-  margin: 0;
-  padding: 0.65rem 0.85rem;
-  border-radius: var(--radius);
-  background: var(--navy);
-  color: var(--white);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.chat-pending {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-.request-actions {
-  justify-content: space-between;
-}
-.request-submit {
-  margin-left: auto;
-  min-width: 5rem;
-}
-.meal-review {
-  background: var(--surface);
-  border-left: 3px solid var(--orange);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
-}
-.meal-review h3 {
-  font-size: 1.125rem;
-  margin: 0;
-}
-.meal-review dl {
-  margin: 0.5rem 0 0;
-}
-.meal-review dl div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 0.5rem;
-  padding-block: 0.55rem;
-  border-bottom: 1px solid var(--line);
-}
-.meal-review dt {
-  font-weight: 650;
-}
-.meal-review dd {
-  margin: 0;
-  overflow-wrap: anywhere;
 }

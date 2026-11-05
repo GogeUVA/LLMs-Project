@@ -1,10 +1,12 @@
 """Interpret meal requests without generating or validating recommendations."""
 
-from collections.abc import Awaitable, Callable
+import json
+from collections.abc import AsyncIterator, Awaitable, Callable
 from functools import partial
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .dietary import DietaryRequirements
@@ -15,12 +17,21 @@ from .groq_interpreter import (
 )
 
 router = APIRouter(prefix="/api/requests")
-Interpreter = Callable[[str, DietaryRequirements], Awaitable[object]]
+Interpreter = Callable[..., Awaitable[object]]
+
+
+class PriorTurn(BaseModel):
+    text: Annotated[str, Field(min_length=1, max_length=2000)]
+    questions: list[Annotated[str, Field(min_length=1, max_length=240)]] = Field(
+        default_factory=list, max_length=6
+    )
 
 
 class MealRequest(BaseModel):
     text: Annotated[str, Field(max_length=2000)]
     dietary: DietaryRequirements = Field(default_factory=DietaryRequirements)
+
+    history: list[PriorTurn] = Field(default_factory=list, max_length=20)
 
     @field_validator("text")
     @classmethod
@@ -74,12 +85,18 @@ def get_interpreter() -> Interpreter:
     return partial(interpret_with_groq, schema=Interpretation.model_json_schema())
 
 
-@router.post("/interpret", response_model_exclude_none=True)
-async def interpret_request(
-    request: MealRequest, interpreter: Annotated[Interpreter, Depends(get_interpreter)]
+async def review_request(
+    request: MealRequest, interpreter: Interpreter
 ) -> ReviewedRequest:
     try:
-        raw = await interpreter(request.text, request.dietary)
+        if request.history:
+            raw = await interpreter(
+                request.text,
+                request.dietary,
+                history=[turn.model_dump() for turn in request.history],
+            )
+        else:
+            raw = await interpreter(request.text, request.dietary)
         result = (
             Interpretation.model_validate_json(raw)
             if isinstance(raw, str)
@@ -110,8 +127,40 @@ async def interpret_request(
     }
     return ReviewedRequest(
         status="needs_clarification" if result.clarifications else "ready",
-        original_text=request.text,
+        original_text=request.history[0].text if request.history else request.text,
         constraints=Constraints.model_validate(constraints),
         clarifications=result.clarifications,
         unsupported_details=result.unsupported_details,
     )
+
+
+async def stream_review(
+    request: MealRequest, interpreter: Interpreter
+) -> AsyncIterator[str]:
+    yield json.dumps({"type": "progress"}) + "\n"
+    try:
+        reply = await review_request(request, interpreter)
+    except HTTPException:
+        yield json.dumps({"type": "error"}) + "\n"
+        return
+    yield (
+        json.dumps({"type": "reply", "reply": reply.model_dump(exclude_none=True)})
+        + "\n"
+    )
+
+
+@router.post(
+    "/interpret", response_model=ReviewedRequest, response_model_exclude_none=True
+)
+async def interpret_request(
+    request: MealRequest,
+    http_request: Request,
+    interpreter: Annotated[Interpreter, Depends(get_interpreter)],
+) -> ReviewedRequest | StreamingResponse:
+    if http_request.headers.get("accept") == "application/x-ndjson":
+        return StreamingResponse(
+            stream_review(request, interpreter),
+            media_type="application/x-ndjson",
+            headers={"Cache-Control": "no-store"},
+        )
+    return await review_request(request, interpreter)

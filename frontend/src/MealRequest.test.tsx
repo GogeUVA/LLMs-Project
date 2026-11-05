@@ -20,22 +20,36 @@ function enterRequest(text: string) {
       target: { value: text },
     },
   );
-  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 }
 
 describe("issue #2 meal request", () => {
-  it("fills an example for editing without sending it", () => {
+  it("uses an accessible icon control and disables it for an empty draft", () => {
     render(<App />);
+    const send = screen.getByRole("button", { name: "Send message" });
+    expect(send).toBeDisabled();
+    expect(send).toHaveTextContent(/^$/);
     expect(
-      screen.queryByRole("heading", { name: "What we’re building" }),
+      screen.queryByRole("button", { name: "Try an example" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Try an example" }));
-    const request = screen.getByRole("textbox", { name: "Describe your meal" });
-    expect(request).toHaveValue(
-      "Vegetarian lunch at Newcomb Hall at noon, under $10.",
+  });
+
+  it("stops a pending reply and restores the unsent text", async () => {
+    fetchRequest.mockImplementation(
+      (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
+        }),
     );
-    expect(request).toHaveFocus();
-    expect(fetchRequest).not.toHaveBeenCalled();
+    render(<App />);
+    enterRequest("Lunch under $10");
+    fireEvent.click(screen.getByRole("button", { name: "Stop response" }));
+    expect(await screen.findByText("Response stopped.")).toBeVisible();
+    expect(
+      screen.getByRole("textbox", { name: "Describe your meal" }),
+    ).toHaveValue("Lunch under $10");
   });
 
   it("submits a meal request and displays the interpreted budget", async () => {
@@ -81,9 +95,15 @@ describe("issue #2 meal request", () => {
     ).toHaveValue("");
     enterRequest("Newcomb Hall");
     expect(fetchRequest).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(fetchRequest.mock.calls[1][1].body).text).toBe(
-      "Lunch near the library\n\nFollow-up: Newcomb Hall",
-    );
+    expect(JSON.parse(fetchRequest.mock.calls[1][1].body)).toMatchObject({
+      text: "Newcomb Hall",
+      history: [
+        {
+          text: "Lunch near the library",
+          questions: ["Which dining location?"],
+        },
+      ],
+    });
     await screen.findByText("Newcomb Hall");
   });
 
