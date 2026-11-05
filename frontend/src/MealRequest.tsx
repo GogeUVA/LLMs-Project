@@ -425,10 +425,10 @@ export default function MealRequest() {
         <p role="status" className="request-message">
           {message}
         </p>
+        <label htmlFor="meal-description" className="chat-composer-label">
+          Describe your meal
+        </label>
         <div className="chat-composer">
-          <label htmlFor="meal-description" className="request-announcement">
-            Describe your meal
-          </label>
           <textarea
             id="meal-description"
             ref={description}
