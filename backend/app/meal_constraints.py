@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from .dietary import DietaryError, check_dietary
+from .location_matching import location_label
 from .menu_evidence import documented_numeric_value
 
 if TYPE_CHECKING:
@@ -50,10 +51,6 @@ def _price_cents(
     numerator, denominator = Decimal(str(amount)).as_integer_ratio()
     cents, remainder = divmod(numerator * 100, denominator)
     return None if remainder else cents
-
-
-def _location_label(value: object) -> str:
-    return " ".join(value.casefold().split()) if isinstance(value, str) else ""
 
 
 def _requested_instant(service_date: date, clock: str) -> datetime | None:
@@ -164,7 +161,7 @@ def evaluate_meal_constraints(
             )
 
     if constraints.location is not None:
-        location = _location_label(meal.get("location"))
+        location = location_label(meal.get("location"))
         if not location:
             errors.append(
                 ConstraintError(
@@ -173,7 +170,7 @@ def evaluate_meal_constraints(
                     "The menu does not list a location for this meal.",
                 )
             )
-        elif location != _location_label(constraints.location):
+        elif location != location_label(constraints.location):
             errors.append(
                 ConstraintError(
                     "LOCATION_NOT_ALLOWED",

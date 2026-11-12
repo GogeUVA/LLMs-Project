@@ -9,8 +9,11 @@ requested hard constraint the record fails or cannot verify.
   maximum. A price equal to the maximum passes. Missing prices, estimated
   prices, other currencies, and fractional cents leave the budget unverified.
 - **Location** compares the menu location with the requested location
-  after ignoring case and extra whitespace. Use the location label from the
-  menu when resolving requests.
+  after ignoring case, punctuation, extra whitespace, and a leading "the".
+  Before recommending, request processing replaces a near-miss name with the
+  menu's location label when exactly one menu location is a close match
+  (issue #28). The checker itself never matches typos, so unknown, partial, or
+  ambiguous names still fail.
 - **Time** interprets the requested clock time and explicit service date in
   `America/New_York`. A time during a daylight saving gap or repeated hour
   requires clarification. Documented service windows use ISO 8601 timestamps
