@@ -42,7 +42,11 @@ class MealRequestTests(unittest.TestCase):
             "max_budget_cents": 1000,
             "location": "Newcomb Hall",
             "meal_time": "12:30",
-            "nutrition": {"min_protein_grams": 25},
+            "nutrition": {
+                "min_protein_grams": 25,
+                "min_protein_exclusive": False,
+                "max_calories_exclusive": False,
+            },
         }.items():
             self.assertEqual(constraints[key], expected)
         self.assertIn("vegetarian", constraints["dietary"]["restrictions"])
