@@ -17,6 +17,7 @@ from .groq_interpreter import (
     InvalidInterpretation,
     interpret_with_groq,
 )
+from .location_matching import resolve_location
 from .recommendations import (
     Recommendation,
     RecommendationFailure,
@@ -162,6 +163,20 @@ async def review_request(
     )
 
 
+def resolve_requested_location(
+    constraints: Constraints, menu: list[dict]
+) -> Constraints:
+    """Replace a near-miss location name with the matching menu location."""
+    if constraints.location is None:
+        return constraints
+    resolved = resolve_location(
+        constraints.location, (item.get("location") for item in menu)
+    )
+    if resolved is None:
+        return constraints
+    return constraints.model_copy(update={"location": resolved})
+
+
 async def reply_to_request(
     request: MealRequest,
     interpreter: Interpreter,
@@ -179,7 +194,7 @@ async def reply_to_request(
         recommend_meal(
             request_text=request.text,
             original_request_text=review.original_text,
-            constraints=review.constraints,
+            constraints=resolve_requested_location(review.constraints, menu),
             menu=menu,
             recommender=recommender,
             unsupported_details=review.unsupported_details,
