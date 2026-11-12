@@ -44,6 +44,10 @@ checks recommendations against the supplied menu. The current flow assumes
 students use a meal exchange. Check Grubhub for item eligibility while the
 exchange menu data is being added. See the [meal constraint policy](docs/meal-constraints.md).
 
+The recommendation model receives only the eligible meals' menu facts, without
+per-field source provenance, so broad requests stay within the provider's token
+limit. Validation and the displayed result still use the full sourced records.
+
 ## Meal selections
 
 Students can select a recommendation only after it has been displayed as a

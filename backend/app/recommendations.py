@@ -57,6 +57,16 @@ def load_menu() -> list[dict]:
     return load_documented_menu(MENU_PATH)
 
 
+def menu_for_model(menu: list[dict]) -> list[dict]:
+    # Provenance repeats the source citation for every nutrient and can exceed the
+    # provider's token limit. The model only needs menu facts to choose a meal;
+    # validation and display still use the full trusted records.
+    return [
+        {field: value for field, value in item.items() if field != "provenance"}
+        for item in menu
+    ]
+
+
 async def recommend_with_groq(
     *,
     request_text: str,
@@ -68,7 +78,7 @@ async def recommend_with_groq(
     context = {
         "request": request_text,
         "constraints": constraints.model_dump(exclude_none=True),
-        "menu": menu,
+        "menu": menu_for_model(menu),
     }
     if validation_errors is not None:
         context["original_request"] = original_request_text
