@@ -460,3 +460,50 @@ button:disabled {
   overflow: hidden;
   clip-path: inset(50%);
 }
+.header-inner nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.header-account {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.account-page {
+  max-width: 30rem;
+}
+.account-form {
+  display: grid;
+  gap: 1rem;
+}
+.account-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.account-form input {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--control);
+  border-radius: var(--radius);
+  font: inherit;
+  width: 100%;
+}
+.account-form > button {
+  justify-self: start;
+}
+.account-form p {
+  margin: 0;
+}
+.account-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.account-options button {
+  color: var(--navy);
+  background: var(--white);
+}
+.profile-import {
+  margin-block: 1rem;
+}

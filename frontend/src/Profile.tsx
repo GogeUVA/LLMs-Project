@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import DietaryFields, { type DietaryDraft } from "./DietaryFields";
 
-import { loadProfile, storageKey } from "./profileStorage";
+import { loadProfile, storageKey, type ProfileDraft } from "./profileStorage";
 
 type Details = Omit<ReturnType<typeof loadProfile>, "dietary">;
 
@@ -31,34 +31,67 @@ const fields = [
   },
 ] as const;
 
-export default function Profile() {
-  const [profile, setProfile] = useState(loadProfile);
+export default function Profile({
+  initialProfile,
+  onSave,
+  onReload,
+}: {
+  initialProfile?: ProfileDraft;
+  onSave?: (profile: ProfileDraft) => Promise<void>;
+  onReload?: () => void;
+}) {
+  const [profile, setProfile] = useState(() => initialProfile ?? loadProfile());
   const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
+  const [conflict, setConflict] = useState(false);
+  const submitting = useRef(false);
 
   function updateProfile(change: Partial<Details> | { dietary: DietaryDraft }) {
     setProfile((current) => ({ ...current, ...change }));
     setMessage("");
   }
 
-  function saveProfile(event: FormEvent<HTMLFormElement>) {
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
     const name = profile.name.trim();
     if (!name) {
       setMessage("Enter your name to save your profile.");
       return;
     }
     const saved = { ...profile, name };
+    submitting.current = true;
+    setPending(true);
+    setMessage("");
     try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({ ...saved, units: "imperial" }),
-      );
+      if (onSave) await onSave(saved);
+      else
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify({ ...saved, units: "imperial" }),
+        );
       setProfile(saved);
       setMessage("Profile saved.");
-    } catch {
-      setMessage(
-        "Couldn’t save your profile in this browser. Your edits are still here.",
-      );
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "PROFILE_CONFLICT"
+      ) {
+        setConflict(true);
+        setMessage(
+          "Your profile changed on another device. Reload it before saving.",
+        );
+      } else
+        setMessage(
+          onSave
+            ? "Couldn’t save your profile. Your edits are still here."
+            : "Couldn’t save your profile in this browser. Your edits are still here.",
+        );
+    } finally {
+      submitting.current = false;
+      setPending(false);
     }
   }
 
@@ -93,7 +126,14 @@ export default function Profile() {
           />
         </section>
         <div className="profile-actions">
-          <button type="submit">Save profile</button>
+          <button type="submit" disabled={pending || conflict}>
+            Save profile
+          </button>
+          {conflict && onReload && (
+            <button type="button" onClick={onReload}>
+              Reload profile
+            </button>
+          )}
           <p role="status">{message}</p>
         </div>
       </form>

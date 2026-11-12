@@ -186,7 +186,9 @@ function recoveryReply(reply: Turn["reply"]): NonNullable<Turn["reply"]> {
 
 const maxRequestLength = 2000;
 
-export default function MealRequest() {
+export default function MealRequest({
+  dietary,
+}: { dietary?: DietaryDraft } = {}) {
   const [selectionSessionId] = useState(getOrCreateSelectionSessionId);
   const [selectedMealId, setSelectedMealId] = useState(
     () =>
@@ -281,7 +283,7 @@ export default function MealRequest() {
     const body = JSON.stringify({
       text,
       history,
-      dietary: loadProfile().dietary,
+      dietary: dietary ?? loadProfile().dietary,
       recommend: true,
     });
     editMessage("");

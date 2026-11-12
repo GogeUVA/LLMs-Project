@@ -37,6 +37,8 @@ npm run dev
 
 Open [localhost:5173](http://localhost:5173). API docs are at [localhost:8000/docs](http://localhost:8000/docs).
 
+For sign-in and profile sync, see [account setup](docs/accounts.md).
+
 Try “Find a meal at The Halal Shack with at least 30 grams of protein.” The app
 checks recommendations against the supplied menu. The current flow assumes
 students use a meal exchange. Check Grubhub for item eligibility while the

@@ -2,7 +2,7 @@ import type { DietaryDraft } from "./DietaryFields";
 
 export const storageKey = "hoos-eating.profile.v1";
 
-const emptyProfile = {
+export const emptyProfile = {
   name: "",
   age: "",
   height: "",
@@ -15,7 +15,7 @@ const emptyProfile = {
   } as DietaryDraft,
 };
 
-type ProfileDraft = typeof emptyProfile;
+export type ProfileDraft = typeof emptyProfile;
 const detailKeys = ["name", "age", "height", "weight"] as const;
 const dietaryKeys = [
   "allergies",
@@ -46,7 +46,18 @@ export function loadProfile(): ProfileDraft {
         );
       })
     ) {
-      const profile = value as ProfileDraft;
+      const profile: ProfileDraft = {
+        name: value.name as string,
+        age: value.age as string,
+        height: value.height as string,
+        weight: value.weight as string,
+        dietary: {
+          allergies: value.dietary!.allergies,
+          restrictions: value.dietary!.restrictions,
+          preferences: value.dietary!.preferences,
+          dislikes: value.dietary!.dislikes,
+        },
+      };
       if (value.units === "imperial") return profile;
 
       return {
