@@ -62,6 +62,9 @@ class StrictModel(BaseModel):
 class NutritionTargets(StrictModel):
     min_protein_grams: Annotated[float, Field(gt=0, allow_inf_nan=False)] | None = None
     max_calories: Annotated[int, Field(gt=0)] | None = None
+    # "More than" and "less than" exclude the target value itself.
+    min_protein_exclusive: bool = False
+    max_calories_exclusive: bool = False
 
 
 class Constraints(StrictModel):

@@ -18,7 +18,12 @@ interface Review {
     max_budget_cents?: number;
     location?: string;
     meal_time?: string;
-    nutrition?: { min_protein_grams?: number; max_calories?: number };
+    nutrition?: {
+      min_protein_grams?: number;
+      max_calories?: number;
+      min_protein_exclusive?: boolean;
+      max_calories_exclusive?: boolean;
+    };
     dietary?: DietaryDraft;
   };
   clarifications: { field: string; question: string }[];
@@ -45,13 +50,13 @@ function RequestReview({ review }: { review: Review }) {
       "Protein",
       nutrition?.min_protein_grams == null
         ? ""
-        : `At least ${nutrition.min_protein_grams} g`,
+        : `${nutrition.min_protein_exclusive ? "More than" : "At least"} ${nutrition.min_protein_grams} g`,
     ],
     [
       "Calories",
       nutrition?.max_calories == null
         ? ""
-        : `Up to ${nutrition.max_calories} kcal`,
+        : `${nutrition.max_calories_exclusive ? "Under" : "Up to"} ${nutrition.max_calories} kcal`,
     ],
     ["Allergies", dietary?.allergies.join(", ")],
     ["Dietary requirements", dietary?.restrictions.join(", ")],

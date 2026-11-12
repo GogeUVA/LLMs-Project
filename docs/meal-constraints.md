@@ -21,8 +21,10 @@ requested hard constraint the record fails or cannot verify.
 - **Dietary needs** use the dietary evidence checker to reject conflicts and
   unverified hard requirements.
 - **Nutrition** applies explicit numeric targets to documented values for the
-  recorded serving. Equal values meet minimum and maximum targets. Descriptive
-  goals such as “high protein” carry no numeric threshold.
+  recorded serving. Equal values meet inclusive targets such as “at least” or
+  “at most”. Exclusive targets such as “more than” or “less than” reject equal
+  values (issue #32). Descriptive goals such as “high protein” carry no numeric
+  threshold.
 
 The current Halal Shack nutrition dataset supplies nutrient values and a
 location. Requests that also require a documented price or service window need

@@ -28,7 +28,11 @@ detail and retain the others. Example: after asking "vegetarian or chicken?"
 and receiving "chicken", use chicken and remove the earlier request-only
 vegetarian requirement. Do not ask the same question again. Saved dietary
 needs are separate and cannot be overridden by a chat message.
-A nutrition constraint requires an explicit number, unit, and direction."""
+A nutrition constraint requires an explicit number, unit, and direction.
+Set min_protein_exclusive to true only for "more than", "over", or "above" a
+protein amount; "at least", "minimum", "no less than", and "20g+" are
+inclusive. Set max_calories_exclusive to true only for "less than", "under", or
+"below" a calorie amount; "at most", "max", and "no more than" are inclusive."""
 
 
 class InterpreterUnavailable(Exception):
