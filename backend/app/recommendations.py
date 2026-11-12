@@ -100,15 +100,20 @@ def explain_match(meal: dict, constraints: Constraints) -> str:
     targets = constraints.nutrition
     if targets is not None and targets.min_protein_grams is not None:
         protein = meal["nutrition"]["protein_g"]
-        facts.append(
-            f"{protein:g} g protein per serving meets your "
-            f"{targets.min_protein_grams:g} g minimum."
+        comparison = (
+            f"is more than your {targets.min_protein_grams:g} g target"
+            if targets.min_protein_exclusive
+            else f"meets your {targets.min_protein_grams:g} g minimum"
         )
+        facts.append(f"{protein:g} g protein per serving {comparison}.")
     if targets is not None and targets.max_calories is not None:
         calories = meal["nutrition"]["calories_kcal"]
-        facts.append(
-            f"{calories:g} kcal per serving fits your {targets.max_calories:g} kcal limit."
+        comparison = (
+            f"is under your {targets.max_calories:g} kcal limit"
+            if targets.max_calories_exclusive
+            else f"fits your {targets.max_calories:g} kcal limit"
         )
+        facts.append(f"{calories:g} kcal per serving {comparison}.")
     return " ".join(facts)
 
 

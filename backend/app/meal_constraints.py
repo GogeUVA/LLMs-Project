@@ -108,9 +108,21 @@ def _nutrition_errors(
 
     nutrition = _mapping(meal.get("nutrition"))
     errors = []
-    for field, target, label, is_minimum in (
-        ("protein_g", targets.min_protein_grams, "minimum protein", True),
-        ("calories_kcal", targets.max_calories, "maximum calories", False),
+    for field, target, label, is_minimum, exclusive in (
+        (
+            "protein_g",
+            targets.min_protein_grams,
+            "minimum protein",
+            True,
+            targets.min_protein_exclusive,
+        ),
+        (
+            "calories_kcal",
+            targets.max_calories,
+            "maximum calories",
+            False,
+            targets.max_calories_exclusive,
+        ),
     ):
         if target is None:
             continue
@@ -123,12 +135,21 @@ def _nutrition_errors(
                     "NUTRITION_UNKNOWN", field, f"The menu does not document {field}."
                 )
             )
-        elif (is_minimum and value < target) or (not is_minimum and value > target):
+            continue
+        # A positive margin means the value is inside the target; an exclusive
+        # target ("more than", "less than") also rejects the boundary itself.
+        margin = value - target if is_minimum else target - value
+        if margin < 0 or (exclusive and margin == 0):
+            requirement = (
+                f"is not {'more' if is_minimum else 'less'} than the target of {target}"
+                if exclusive
+                else f"does not meet the {label} target of {target}"
+            )
             errors.append(
                 ConstraintError(
                     "NUTRITION_TARGET_NOT_MET",
                     field,
-                    f"The documented value of {value} does not meet the {label} target of {target}.",
+                    f"The documented value of {value} {requirement}.",
                 )
             )
     return errors
